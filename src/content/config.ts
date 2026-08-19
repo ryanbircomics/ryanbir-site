@@ -6,6 +6,7 @@ const portfolio = defineCollection({
     title: z.string(),
     issueNumber: z.number().optional(),
     date: z.string(), // DD/MM/YYYY
+    category: z.enum(["pencils-inks", "colors", "illustrations"]),
     role: z.string(),
     coCredit: z.string().optional(),
     coCreditLink: z.string().url().optional(),

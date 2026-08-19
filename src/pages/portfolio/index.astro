@@ -2,38 +2,67 @@
 import Layout from "../../layouts/Layout.astro";
 import Nav from "../../components/Nav.astro";
 import Footer from "../../components/Footer.astro";
-import ProjectCard from "../../components/ProjectCard.astro";
 import { getCollection } from "astro:content";
 
 const allProjects = await getCollection("portfolio");
-const sorted = allProjects.sort((a, b) => a.data.ranking - b.data.ranking);
+
+const categories = [
+  { slug: "pencils-inks", label: "Pencils & Inks" },
+  { slug: "colors", label: "Colors" },
+  { slug: "illustrations", label: "Illustrations" },
+];
 ---
 
 <Layout
   title="Portfolio — Ryan Bir"
-  description="Comic book illustration portfolio — pencils, inks, and covers."
+  description="Comic book illustration portfolio — pencils, inks, colours, and illustrations."
 >
   <Nav />
 
   <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
-    <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-12">
+    <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-16">
       PORTFOLIO
     </h1>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {sorted.map((project) => (
-        <ProjectCard
-          slug={project.id}
-          title={project.data.title}
-          issueNumber={project.data.issueNumber}
-          date={project.data.date}
-          role={project.data.role}
-          coCredit={project.data.coCredit}
-          coCreditLink={project.data.coCreditLink}
-          contentLink={project.data.contentLink}
-          imageFolderLocation={project.data.imageFolderLocation}
-        />
-      ))}
+    <div class="space-y-16">
+      {categories.map((cat) => {
+        const catProjects = allProjects
+          .filter((p) => p.data.category === cat.slug)
+          .sort((a, b) => a.data.ranking - b.data.ranking);
+        const featuredProject = catProjects[0];
+        if (!featuredProject) return null;
+        const coverImage = `/${featuredProject.data.imageFolderLocation}/cover.jpg`;
+        return (
+          <div class="group">
+            <div class="flex items-baseline justify-between mb-6">
+              <h2 class="font-display text-3xl tracking-widest text-text">
+                {cat.label.toUpperCase()}
+              </h2>
+              <a
+                href={`/portfolio/${cat.slug}`}
+                class="text-accent text-sm font-medium hover:underline"
+              >
+                View all →
+              </a>
+            </div>
+            <a href={`/portfolio/${cat.slug}`} class="block relative aspect-[21/9] overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300">
+              <img
+                src={coverImage}
+                alt={cat.label}
+                class="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500"
+              />
+              <div class="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-end p-8">
+                <div>
+                  <p class="font-display text-2xl tracking-widest text-text">
+                    {featuredProject.data.title}{featuredProject.data.issueNumber ? ` #${featuredProject.data.issueNumber}` : ""}
+                  </p>
+                  <p class="text-muted text-sm mt-1">{featuredProject.data.role}</p>
+                </div>
+              </div>
+            </a>
+          </div>
+        );
+      })}
     </div>
   </main>
 

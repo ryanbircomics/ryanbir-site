@@ -2,13 +2,9 @@
 import Layout from "../layouts/Layout.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
-import ProjectCard from "../components/ProjectCard.astro";
 import { getCollection } from "astro:content";
 
 const allProjects = await getCollection("portfolio");
-const featured = allProjects
-  .sort((a, b) => a.data.ranking - b.data.ranking)
-  .slice(0, 3);
 ---
 
 <Layout title="Ryan Bir — Comic Book Illustrator">
@@ -40,34 +36,43 @@ const featured = allProjects
       </div>
     </section>
 
-    <!-- Featured Work -->
-    {featured.length > 0 && (
-      <section class="max-w-6xl mx-auto px-6 pb-24">
-        <h2 class="font-display text-3xl tracking-widest text-muted mb-8">
-          FEATURED WORK
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featured.map((project) => (
-            <ProjectCard
-              slug={project.id}
-              title={project.data.title}
-              issueNumber={project.data.issueNumber}
-              date={project.data.date}
-              role={project.data.role}
-              coCredit={project.data.coCredit}
-              coCreditLink={project.data.coCreditLink}
-              contentLink={project.data.contentLink}
-              imageFolderLocation={project.data.imageFolderLocation}
-            />
-          ))}
-        </div>
-        <div class="mt-10">
-          <a href="/portfolio" class="text-accent font-medium hover:underline text-sm">
-            View all work →
-          </a>
-        </div>
-      </section>
-    )}
+    <!-- Category Triptych -->
+    <section class="max-w-6xl mx-auto px-6 pb-24">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          { slug: "pencils-inks", label: "Pencils & Inks" },
+          { slug: "colors", label: "Colors" },
+          { slug: "illustrations", label: "Illustrations" },
+        ].map((cat) => {
+          const featured = allProjects
+            .filter((p) => p.data.category === cat.slug)
+            .sort((a, b) => a.data.ranking - b.data.ranking)[0];
+          const coverImage = featured
+            ? `/${featured.data.imageFolderLocation}/cover.jpg`
+            : null;
+          return (
+            <a
+              href={`/portfolio/${cat.slug}`}
+              class="group relative aspect-[3/4] overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300 flex items-end"
+            >
+              {coverImage && (
+                <img
+                  src={coverImage}
+                  alt={cat.label}
+                  class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-60 group-hover:opacity-80"
+                />
+              )}
+              <div class="relative z-10 p-6 w-full bg-gradient-to-t from-black/80 to-transparent">
+                <h2 class="font-display text-4xl tracking-widest text-text leading-none">
+                  {cat.label.toUpperCase()}
+                </h2>
+                <p class="text-accent text-sm mt-2 font-medium">View work →</p>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </section>
   </main>
 
   <Footer />

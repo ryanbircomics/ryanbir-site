@@ -2,97 +2,153 @@
 import Layout from "../../layouts/Layout.astro";
 import Nav from "../../components/Nav.astro";
 import Footer from "../../components/Footer.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
 import { getCollection } from "astro:content";
+
+const CATEGORIES = [
+  { slug: "pencils-inks", label: "Pencils & Inks" },
+  { slug: "colors", label: "Colors" },
+  { slug: "illustrations", label: "Illustrations" },
+];
 
 export async function getStaticPaths() {
   const projects = await getCollection("portfolio");
-  return projects.map((project) => ({
-    params: { slug: project.id },
-    props: { project },
+
+  const CATEGORIES = [
+    { slug: "pencils-inks", label: "Pencils & Inks" },
+    { slug: "colors", label: "Colors" },
+    { slug: "illustrations", label: "Illustrations" },
+  ];
+
+  const categoryPaths = CATEGORIES.map((cat) => ({
+    params: { slug: cat.slug },
+    props: {
+      type: "category" as const,
+      category: cat,
+      projects: projects
+        .filter((p) => p.data.category === cat.slug)
+        .sort((a, b) => a.data.ranking - b.data.ranking),
+    },
   }));
+
+  const projectPaths = projects.map((project) => ({
+    params: { slug: project.id },
+    props: { type: "project" as const, project },
+  }));
+
+  return [...categoryPaths, ...projectPaths];
 }
 
-const { project } = Astro.props;
-const { title, issueNumber, date, role, coCredit, coCreditLink, contentLink, imageFolderLocation } =
-  project.data;
-
-const displayTitle = issueNumber ? `${title} #${issueNumber}` : title;
-
-// Collect all images in the folder — cover.jpg is always first
-// Additional images should be named 01.jpg, 02.jpg, etc.
-const coverImage = `/${imageFolderLocation}/cover.jpg`;
+const { type } = Astro.props;
 ---
 
-<Layout
-  title={`${displayTitle} — Ryan Bir`}
-  description={`${displayTitle} — ${role} by Ryan Bir`}
->
-  <Nav />
-
-  <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
-    <a href="/portfolio" class="text-muted text-sm hover:text-accent transition-colors mb-8 inline-block">
-      ← Back to Portfolio
-    </a>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-6">
-      <!-- Cover image -->
-      <div class="aspect-[3/4] bg-surface rounded-lg overflow-hidden">
-        <img
-          src={coverImage}
-          alt={displayTitle}
-          class="w-full h-full object-cover"
-        />
-      </div>
-
-      <!-- Details -->
-      <div class="flex flex-col justify-start pt-4">
-        <h1 class="font-display text-5xl md:text-6xl tracking-widest text-text leading-none">
-          {displayTitle}
-        </h1>
-
-        <dl class="mt-8 space-y-4">
-          <div>
-            <dt class="text-muted text-xs uppercase tracking-widest">Role</dt>
-            <dd class="text-text mt-1">{role}</dd>
-          </div>
-          {coCredit && (
-            <div>
-              <dt class="text-muted text-xs uppercase tracking-widest">With</dt>
-              <dd class="text-text mt-1">
-                {coCreditLink ? (
-                  <a
-                    href={coCreditLink}
-                    class="text-accent hover:underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {coCredit}
-                  </a>
-                ) : (
-                  coCredit
-                )}
-              </dd>
+{type === "category" ? (
+  (() => {
+    const { category, projects } = Astro.props;
+    return (
+      <Layout
+        title={`${category.label} — Ryan Bir`}
+        description={`${category.label} work by comic book illustrator Ryan Bir.`}
+      >
+        <Nav />
+        <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
+          <a href="/portfolio" class="text-muted text-sm hover:text-accent transition-colors mb-8 inline-block">
+            ← Portfolio
+          </a>
+          <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mt-4 mb-12">
+            {category.label.toUpperCase()}
+          </h1>
+          {projects.length === 0 ? (
+            <p class="text-muted">No projects yet — check back soon.</p>
+          ) : (
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {projects.map((project) => (
+                <ProjectCard
+                  slug={project.id}
+                  title={project.data.title}
+                  issueNumber={project.data.issueNumber}
+                  date={project.data.date}
+                  role={project.data.role}
+                  coCredit={project.data.coCredit}
+                  coCreditLink={project.data.coCreditLink}
+                  contentLink={project.data.contentLink}
+                  imageFolderLocation={project.data.imageFolderLocation}
+                />
+              ))}
             </div>
           )}
-          <div>
-            <dt class="text-muted text-xs uppercase tracking-widest">Date</dt>
-            <dd class="text-text mt-1">{date}</dd>
-          </div>
-        </dl>
-
-        {contentLink && (
-          <a
-            href={contentLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="mt-10 inline-block bg-accent text-white px-6 py-3 text-sm font-medium tracking-wide hover:bg-accent/80 transition-colors self-start"
-          >
-            Read / Buy →
+        </main>
+        <Footer />
+      </Layout>
+    );
+  })()
+) : (
+  (() => {
+    const { project } = Astro.props;
+    const { title, issueNumber, date, role, coCredit, coCreditLink, contentLink, imageFolderLocation, category } =
+      project.data;
+    const displayTitle = issueNumber ? `${title} #${issueNumber}` : title;
+    const coverImage = `/${imageFolderLocation}/cover.jpg`;
+    const catLabel = CATEGORIES.find((c) => c.slug === category)?.label ?? category;
+    return (
+      <Layout
+        title={`${displayTitle} — Ryan Bir`}
+        description={`${displayTitle} — ${role} by Ryan Bir`}
+      >
+        <Nav />
+        <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
+          <a href={`/portfolio/${category}`} class="text-muted text-sm hover:text-accent transition-colors mb-8 inline-block">
+            ← {catLabel}
           </a>
-        )}
-      </div>
-    </div>
-  </main>
-
-  <Footer />
-</Layout>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-6">
+            <div class="aspect-[3/4] bg-surface rounded-lg overflow-hidden">
+              <img
+                src={coverImage}
+                alt={displayTitle}
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div class="flex flex-col justify-start pt-4">
+              <h1 class="font-display text-5xl md:text-6xl tracking-widest text-text leading-none">
+                {displayTitle}
+              </h1>
+              <dl class="mt-8 space-y-4">
+                <div>
+                  <dt class="text-muted text-xs uppercase tracking-widest">Role</dt>
+                  <dd class="text-text mt-1">{role}</dd>
+                </div>
+                {coCredit && (
+                  <div>
+                    <dt class="text-muted text-xs uppercase tracking-widest">With</dt>
+                    <dd class="text-text mt-1">
+                      {coCreditLink ? (
+                        <a href={coCreditLink} class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                          {coCredit}
+                        </a>
+                      ) : coCredit}
+                    </dd>
+                  </div>
+                )}
+                <div>
+                  <dt class="text-muted text-xs uppercase tracking-widest">Date</dt>
+                  <dd class="text-text mt-1">{date}</dd>
+                </div>
+              </dl>
+              {contentLink && (
+                <a
+                  href={contentLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-10 inline-block bg-accent text-white px-6 py-3 text-sm font-medium tracking-wide hover:bg-accent/80 transition-colors self-start"
+                >
+                  Read / Buy →
+                </a>
+              )}
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </Layout>
+    );
+  })()
+)}
