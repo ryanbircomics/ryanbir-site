@@ -2,8 +2,9 @@
 import Layout from "../../layouts/Layout.astro";
 import Nav from "../../components/Nav.astro";
 import Footer from "../../components/Footer.astro";
-import ProjectCard from "../../components/ProjectCard.astro";
 import { getCollection } from "astro:content";
+import { readdirSync, existsSync } from "fs";
+import { join } from "path";
 
 const CATEGORIES = [
   { slug: "pencils-inks", label: "Pencils & Inks" },
@@ -39,6 +40,19 @@ export async function getStaticPaths() {
   return [...categoryPaths, ...projectPaths];
 }
 
+function getProjectImages(imageFolderLocation: string): string[] {
+  const folderPath = join(process.cwd(), "public", imageFolderLocation);
+  if (!existsSync(folderPath)) return [];
+  const files = readdirSync(folderPath).filter((f) =>
+    /\.(jpg|jpeg|png)$/i.test(f)
+  );
+  const cover = files.find((f) => f.toLowerCase() === "cover.jpg");
+  const rest = files
+    .filter((f) => f.toLowerCase() !== "cover.jpg")
+    .sort();
+  return cover ? [cover, ...rest] : rest;
+}
+
 const { type } = Astro.props;
 ---
 
@@ -51,30 +65,69 @@ const { type } = Astro.props;
         description={`${category.label} work by comic book illustrator Ryan Bir.`}
       >
         <Nav />
-        <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
+        <main class="max-w-6xl mx-auto px-6 py-12">
           <a href="/portfolio" class="text-muted text-sm hover:text-accent transition-colors mb-8 inline-block">
             ← Portfolio
           </a>
-          <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mt-4 mb-12">
+          <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mt-4 mb-16">
             {category.label.toUpperCase()}
           </h1>
+
           {projects.length === 0 ? (
             <p class="text-muted">No projects yet — check back soon.</p>
           ) : (
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {projects.map((project) => (
-                <ProjectCard
-                  slug={project.id}
-                  title={project.data.title}
-                  issueNumber={project.data.issueNumber}
-                  date={project.data.date}
-                  role={project.data.role}
-                  coCredit={project.data.coCredit}
-                  coCreditLink={project.data.coCreditLink}
-                  contentLink={project.data.contentLink}
-                  imageFolderLocation={project.data.imageFolderLocation}
-                />
-              ))}
+            <div class="space-y-24">
+              {projects.map((project) => {
+                const { title, issueNumber, date, role, coCredit, coCreditLink, contentLink, imageFolderLocation } = project.data;
+                const displayTitle = issueNumber ? `${title} #${issueNumber}` : title;
+                const images = getProjectImages(imageFolderLocation);
+                return (
+                  <section>
+                    <!-- Project header -->
+                    <div class="flex flex-wrap items-baseline justify-between gap-4 mb-2">
+                      <h2 class="font-display text-3xl md:text-4xl tracking-widest text-text">
+                        {displayTitle}
+                      </h2>
+                      {contentLink && (
+                        <a
+                          href={contentLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-accent text-sm font-medium hover:underline"
+                        >
+                          Read / Buy →
+                        </a>
+                      )}
+                    </div>
+                    <p class="text-muted text-sm mb-1">{role}{coCredit && (
+                      <span> · with {coCreditLink ? (
+                        <a href={coCreditLink} class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                          {coCredit}
+                        </a>
+                      ) : coCredit}</span>
+                    )}</p>
+                    <p class="text-muted text-xs mb-8">{date}</p>
+
+                    <!-- Image grid -->
+                    {images.length > 0 ? (
+                      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {images.map((filename) => (
+                          <div class="overflow-hidden bg-surface">
+                            <img
+                              src={`/${imageFolderLocation}/${filename}`}
+                              alt={`${displayTitle} — ${filename}`}
+                              class="w-full h-auto object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                              loading="lazy"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p class="text-muted text-sm">Images coming soon.</p>
+                    )}
+                  </section>
+                );
+              })}
             </div>
           )}
         </main>
