@@ -11,9 +11,12 @@ const currentPath = Astro.url.pathname;
 
 <nav class="border-b border-white/10">
   <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-    <a href="/" class="font-display text-2xl tracking-widest text-text hover:text-accent transition-colors">
-      RYAN BIR
-    </a>
+    {currentPath !== "/" && (
+      <a href="/" class="font-display text-2xl tracking-widest text-text hover:text-accent transition-colors">
+        RYAN BIR
+      </a>
+    )}
+    {currentPath === "/" && <div />}
     <ul class="flex gap-8">
       {navLinks.map(({ href, label }) => (
         <li>
