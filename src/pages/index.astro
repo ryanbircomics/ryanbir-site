@@ -1,7 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Nav from "../components/Nav.astro";
-import Footer from "../components/Footer.astro";
 import { getCollection } from "astro:content";
 
 const allProjects = await getCollection("portfolio");
@@ -10,17 +9,17 @@ const allProjects = await getCollection("portfolio");
 <Layout title="Ryan Bir — Comic Book Illustrator">
   <Nav />
 
-  <main class="flex-1">
+  <main class="flex-1 flex flex-col">
     <!-- Hero -->
-    <section class="max-w-6xl mx-auto px-6 pt-6 pb-24">
-      <h1 class="font-display text-6xl md:text-8xl lg:text-9xl tracking-widest leading-none text-text">
-        RYAN<br />BIR
+    <section class="max-w-6xl w-full mx-auto px-6 pt-4 pb-4">
+      <h1 class="font-display text-7xl md:text-8xl tracking-widest leading-none text-text whitespace-nowrap">
+        RYAN BIR
       </h1>
-      <p class="mt-6 text-muted text-lg md:text-xl max-w-xl leading-relaxed">
+      <p class="mt-3 text-muted text-base max-w-xl leading-relaxed">
         Comic book illustrator. Pencils, inks, and covers for independent and
         publisher projects.
       </p>
-      <div class="mt-10 flex gap-4">
+      <div class="mt-4 flex gap-4">
         <a
           href="/portfolio"
           class="bg-accent text-white px-6 py-3 text-sm font-medium tracking-wide hover:bg-accent/80 transition-colors"
@@ -37,8 +36,8 @@ const allProjects = await getCollection("portfolio");
     </section>
 
     <!-- Category Triptych -->
-    <section class="max-w-6xl mx-auto px-6 pb-24">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <section class="flex-1 max-w-6xl w-full mx-auto px-6 pb-6 min-h-0">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
         {[
           { slug: "pencils-inks", label: "Pencils & Inks" },
           { slug: "colors", label: "Colors" },
@@ -53,7 +52,7 @@ const allProjects = await getCollection("portfolio");
           return (
             <a
               href={`/portfolio/${cat.slug}`}
-              class="group relative aspect-[3/4] overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300 flex items-end"
+              class="group relative overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300 flex items-end min-h-48"
             >
               {coverImage && (
                 <img
@@ -75,5 +74,4 @@ const allProjects = await getCollection("portfolio");
     </section>
   </main>
 
-  <Footer />
 </Layout>
