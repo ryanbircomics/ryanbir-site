@@ -19,51 +19,45 @@ const categories = [
 >
   <Nav />
 
-  <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
-    <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-16">
-      PORTFOLIO
-    </h1>
+  <main class="flex-1 flex flex-col">
+    <section class="max-w-6xl w-full mx-auto px-6 pt-4 pb-4">
+      <h1 class="font-display text-7xl md:text-8xl tracking-widest leading-none text-text">
+        PORTFOLIO
+      </h1>
+    </section>
 
-    <div class="space-y-16">
-      {categories.map((cat) => {
-        const catProjects = allProjects
-          .filter((p) => p.data.category === cat.slug)
-          .sort((a, b) => a.data.ranking - b.data.ranking);
-        const featuredProject = catProjects[0];
-        if (!featuredProject) return null;
-        const coverImage = `/${featuredProject.data.imageFolderLocation}/cover.jpg`;
-        return (
-          <div class="group">
-            <div class="flex items-baseline justify-between mb-6">
-              <h2 class="font-display text-3xl tracking-widest text-text">
-                {cat.label.toUpperCase()}
-              </h2>
-              <a
-                href={`/portfolio/${cat.slug}`}
-                class="text-accent text-sm font-medium hover:underline"
-              >
-                View all →
-              </a>
-            </div>
-            <a href={`/portfolio/${cat.slug}`} class="block relative aspect-[21/9] overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300">
-              <img
-                src={coverImage}
-                alt={cat.label}
-                class="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-105 transition-all duration-500"
-              />
-              <div class="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-end p-8">
-                <div>
-                  <p class="font-display text-2xl tracking-widest text-text">
-                    {featuredProject.data.title}{featuredProject.data.issueNumber ? ` #${featuredProject.data.issueNumber}` : ""}
-                  </p>
-                  <p class="text-muted text-sm mt-1">{featuredProject.data.role}</p>
-                </div>
+    <section class="flex-1 max-w-6xl w-full mx-auto px-6 pb-6 min-h-0">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+        {categories.map((cat) => {
+          const featured = allProjects
+            .filter((p) => p.data.category === cat.slug)
+            .sort((a, b) => a.data.ranking - b.data.ranking)[0];
+          const coverImage = featured
+            ? `/${featured.data.imageFolderLocation}/cover.jpg`
+            : null;
+          return (
+            <a
+              href={`/portfolio/${cat.slug}`}
+              class="group relative overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300 flex items-end min-h-48"
+            >
+              {coverImage && (
+                <img
+                  src={coverImage}
+                  alt={cat.label}
+                  class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-60 group-hover:opacity-80"
+                />
+              )}
+              <div class="relative z-10 p-6 w-full bg-gradient-to-t from-black/80 to-transparent">
+                <h2 class="font-display text-4xl tracking-widest text-text leading-none">
+                  {cat.label.toUpperCase()}
+                </h2>
+                <p class="text-accent text-sm mt-2 font-medium">View work →</p>
               </div>
             </a>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </section>
   </main>
 
   <Footer />
