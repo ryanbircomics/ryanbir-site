@@ -1,0 +1,32 @@
+---
+const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/portfolio", label: "Portfolio" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<nav class="border-b border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="/" class="font-display text-2xl tracking-widest text-text hover:text-accent transition-colors">
+      RYAN BIR
+    </a>
+    <ul class="flex gap-8">
+      {navLinks.map(({ href, label }) => (
+        <li>
+          <a
+            href={href}
+            class={`text-sm font-medium tracking-wide transition-colors hover:text-accent ${
+              currentPath === href ? "text-accent" : "text-muted"
+            }`}
+          >
+            {label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</nav>

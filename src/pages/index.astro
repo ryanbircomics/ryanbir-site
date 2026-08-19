@@ -1,0 +1,74 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+import { getCollection } from "astro:content";
+
+const allProjects = await getCollection("portfolio");
+const featured = allProjects
+  .sort((a, b) => a.data.ranking - b.data.ranking)
+  .slice(0, 3);
+---
+
+<Layout title="Ryan Bir — Comic Book Illustrator">
+  <Nav />
+
+  <main class="flex-1">
+    <!-- Hero -->
+    <section class="max-w-6xl mx-auto px-6 py-24 md:py-36">
+      <h1 class="font-display text-6xl md:text-8xl lg:text-9xl tracking-widest leading-none text-text">
+        RYAN<br />BIR
+      </h1>
+      <p class="mt-6 text-muted text-lg md:text-xl max-w-xl leading-relaxed">
+        Comic book illustrator. Pencils, inks, and covers for independent and
+        publisher projects.
+      </p>
+      <div class="mt-10 flex gap-4">
+        <a
+          href="/portfolio"
+          class="bg-accent text-white px-6 py-3 text-sm font-medium tracking-wide hover:bg-accent/80 transition-colors"
+        >
+          View Portfolio
+        </a>
+        <a
+          href="/contact"
+          class="border border-white/20 text-text px-6 py-3 text-sm font-medium tracking-wide hover:border-accent hover:text-accent transition-colors"
+        >
+          Get in Touch
+        </a>
+      </div>
+    </section>
+
+    <!-- Featured Work -->
+    {featured.length > 0 && (
+      <section class="max-w-6xl mx-auto px-6 pb-24">
+        <h2 class="font-display text-3xl tracking-widest text-muted mb-8">
+          FEATURED WORK
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {featured.map((project) => (
+            <ProjectCard
+              slug={project.id}
+              title={project.data.title}
+              issueNumber={project.data.issueNumber}
+              date={project.data.date}
+              role={project.data.role}
+              coCredit={project.data.coCredit}
+              coCreditLink={project.data.coCreditLink}
+              contentLink={project.data.contentLink}
+              imageFolderLocation={project.data.imageFolderLocation}
+            />
+          ))}
+        </div>
+        <div class="mt-10">
+          <a href="/portfolio" class="text-accent font-medium hover:underline text-sm">
+            View all work →
+          </a>
+        </div>
+      </section>
+    )}
+  </main>
+
+  <Footer />
+</Layout>

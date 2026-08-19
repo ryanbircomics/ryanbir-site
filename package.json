@@ -1,0 +1,22 @@
+{
+  "name": "ryanbir-site",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/tailwind": "^6.0.2",
+    "@astrojs/vercel": "^8.2.6",
+    "astro": "^5.12.8"
+  },
+  "devDependencies": {
+    "@astrojs/sitemap": "^3.5.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.3"
+  }
+}

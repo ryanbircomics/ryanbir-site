@@ -1,0 +1,47 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+---
+
+<Layout
+  title="About — Ryan Bir"
+  description="Ryan Bir is a comic book illustrator specialising in pencils, inks, and covers."
+>
+  <Nav />
+
+  <main class="flex-1 max-w-4xl mx-auto px-6 py-16">
+    <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-12">
+      ABOUT
+    </h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+      <!-- Photo placeholder -->
+      <div class="aspect-square bg-surface rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+        <span class="text-muted text-sm">Photo coming soon</span>
+      </div>
+
+      <!-- Bio -->
+      <div class="space-y-6 text-text leading-relaxed">
+        <p>
+          <!-- Ryan: add your bio here -->
+          Ryan Bir is a comic book illustrator based in [location], working in
+          pencils, inks, and covers across independent and publisher projects.
+        </p>
+        <p>
+          <!-- Add more paragraphs as needed -->
+        </p>
+        <div class="pt-4">
+          <a
+            href="/contact"
+            class="text-accent font-medium hover:underline"
+          >
+            Available for commissions and collaboration →
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Layout>

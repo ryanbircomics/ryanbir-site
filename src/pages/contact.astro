@@ -1,0 +1,89 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+
+// TODO: Add Formspark form ID when Ryan sets up his account
+// https://formspark.io
+const FORMSPARK_FORM_ID = "YOUR_FORM_ID_HERE";
+---
+
+<Layout
+  title="Contact — Ryan Bir"
+  description="Get in touch with Ryan Bir for commissions, collaborations, and inquiries."
+>
+  <Nav />
+
+  <main class="flex-1 max-w-2xl mx-auto px-6 py-16">
+    <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-4">
+      CONTACT
+    </h1>
+    <p class="text-muted mb-12 leading-relaxed">
+      Available for commissions, cover work, and collaborations. Fill out the
+      form below and I'll get back to you.
+    </p>
+
+    <!-- TODO: Replace action URL with real Formspark endpoint and add Cloudflare Turnstile captcha -->
+    <form
+      action={`https://submit-form.com/${FORMSPARK_FORM_ID}`}
+      method="POST"
+      class="space-y-6"
+    >
+      <div>
+        <label for="name" class="block text-sm text-muted mb-2">Name</label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          required
+          class="w-full bg-surface border border-white/10 text-text px-4 py-3 rounded focus:outline-none focus:border-accent transition-colors"
+        />
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm text-muted mb-2">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          class="w-full bg-surface border border-white/10 text-text px-4 py-3 rounded focus:outline-none focus:border-accent transition-colors"
+        />
+      </div>
+
+      <div>
+        <label for="subject" class="block text-sm text-muted mb-2">Subject</label>
+        <select
+          id="subject"
+          name="subject"
+          class="w-full bg-surface border border-white/10 text-text px-4 py-3 rounded focus:outline-none focus:border-accent transition-colors"
+        >
+          <option value="commission">Commission</option>
+          <option value="cover">Cover Work</option>
+          <option value="collaboration">Collaboration</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="message" class="block text-sm text-muted mb-2">Message</label>
+        <textarea
+          id="message"
+          name="message"
+          rows="6"
+          required
+          class="w-full bg-surface border border-white/10 text-text px-4 py-3 rounded focus:outline-none focus:border-accent transition-colors resize-none"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-accent text-white px-6 py-3 font-medium tracking-wide hover:bg-accent/80 transition-colors"
+      >
+        Send Message
+      </button>
+    </form>
+  </main>
+
+  <Footer />
+</Layout>

@@ -1,0 +1,41 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Nav from "../../components/Nav.astro";
+import Footer from "../../components/Footer.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import { getCollection } from "astro:content";
+
+const allProjects = await getCollection("portfolio");
+const sorted = allProjects.sort((a, b) => a.data.ranking - b.data.ranking);
+---
+
+<Layout
+  title="Portfolio — Ryan Bir"
+  description="Comic book illustration portfolio — pencils, inks, and covers."
+>
+  <Nav />
+
+  <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
+    <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-12">
+      PORTFOLIO
+    </h1>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {sorted.map((project) => (
+        <ProjectCard
+          slug={project.id}
+          title={project.data.title}
+          issueNumber={project.data.issueNumber}
+          date={project.data.date}
+          role={project.data.role}
+          coCredit={project.data.coCredit}
+          coCreditLink={project.data.coCreditLink}
+          contentLink={project.data.contentLink}
+          imageFolderLocation={project.data.imageFolderLocation}
+        />
+      ))}
+    </div>
+  </main>
+
+  <Footer />
+</Layout>
