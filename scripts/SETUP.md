@@ -13,20 +13,12 @@ paths to type in.
   (Only needed this first time — the tool checks for and installs any
   future new dependencies itself before it runs.)
 
-## 2. Compile the app
+`AddProject.app` is already committed to the repo root, pre-compiled — no
+`osacompile` step needed on Ryan's machine. It works wherever it ends up
+because it figures out the repo location and where `node` lives at
+runtime, not at compile time. Cloning/pulling the repo is enough.
 
-From Terminal, inside the repo:
-
-```
-osacompile -o AddProject.app scripts/AddProject.applescript
-```
-
-This creates `AddProject.app` in the repo's root folder. Leave it there —
-the app figures out where the repo is by asking where it itself is
-running from, so it needs to live inside it. (It's already covered by
-`.gitignore`, so it won't get committed.)
-
-## 3. Give Ryan a normal-looking icon
+## 2. Give Ryan a normal-looking icon
 
 The app itself should stay inside the repo folder, but Ryan doesn't need
 to go digging through the project files to find it. Make an alias on his
@@ -41,7 +33,7 @@ as long as macOS can still find it via Spotlight — but if the repo folder
 is ever moved to a completely different drive/location, it's safest to
 just redo this step.
 
-## 4. Test it once yourself
+## 3. Test it once yourself
 
 - Make a scratch folder with a couple of test images (name one `cover.jpg`)
   and a JSON file (copy `src/content/portfolio/_template.json` and fill it in).
@@ -72,6 +64,18 @@ nothing is left half-done in the repo either way.
   latest from GitHub as its first step every time it runs, and installs
   any new dependencies itself.
 - Changes to `scripts/AddProject.applescript` (the dialogs themselves) do
-  **not** update automatically — the `.app` is a compiled snapshot of that
-  file. Recompile it (step 2) and it'll pick up the change immediately
-  since the app stays in place and the Desktop alias still points to it.
+  **not** update automatically — `AddProject.app` in the repo root is a
+  compiled snapshot of that file, committed to git. Recompile it on your
+  own machine and commit the result in the same change:
+
+  ```
+  osacompile -o AddProject.app scripts/AddProject.applescript
+  git add scripts/AddProject.applescript AddProject.app
+  git commit -m "..."
+  ```
+
+  Ryan's copy updates automatically the next time he runs the tool (it's
+  just a normal file pulled from the repo, same as any other). Don't skip
+  recompiling after editing the `.applescript` source — otherwise the
+  source and the committed `.app` drift out of sync and Ryan keeps seeing
+  the old dialogs.
