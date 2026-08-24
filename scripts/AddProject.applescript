@@ -4,13 +4,13 @@
 -- touching git or a terminal. Drag a folder (images + one JSON file) onto
 -- the compiled app, or double-click it to pick a folder from a dialog.
 --
--- One-time setup (see scripts/SETUP.md):
---   1. Fill in repoPath and nodeBinDir below for the machine this runs on.
---   2. Compile: osacompile -o AddProject.app AddProject.applescript
---   3. Drag AddProject.app to the Desktop (or wherever is convenient).
-
-property repoPath : "/Users/ryan/Projects/ryanbir-site"
-property nodeBinDir : "/usr/local/bin:/opt/homebrew/bin"
+-- Finds its own repo location and node's location at runtime, so no
+-- properties need editing. See scripts/SETUP.md for the one-time setup:
+--   1. Compile: osacompile -o AddProject.app scripts/AddProject.applescript
+--   2. Place AddProject.app in the repo's root folder (it locates the repo
+--      by asking where it itself is running from).
+--   3. Make a Desktop alias pointing to it (Cmd+Option+drag the app to the
+--      Desktop), so Ryan has a normal-looking icon to use.
 
 on open droppedItems
 	handleProject(POSIX path of (item 1 of droppedItems))
@@ -21,8 +21,30 @@ on run
 	handleProject(POSIX path of chosenFolder)
 end run
 
+on resolvedRepoPath()
+	-- The app is expected to live directly in the repo's root folder, so its
+	-- own parent directory *is* the repo.
+	set appPosixPath to POSIX path of (path to me)
+	return do shell script "dirname " & quoted form of appPosixPath
+end resolvedRepoPath
+
+on resolvedNodePath()
+	-- "do shell script" runs a bare /bin/sh with a minimal PATH that doesn't
+	-- source .zshrc/.zprofile, so it usually can't see where Homebrew/nvm/etc
+	-- put node. Ask Ryan's actual login shell instead of guessing a location.
+	try
+		return do shell script "zsh -lc 'echo -n $PATH' 2>/dev/null"
+	end try
+	try
+		return do shell script "bash -lc 'echo -n $PATH' 2>/dev/null"
+	end try
+	return "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+end resolvedNodePath
+
 on handleProject(folderPath)
-	set shellPrefix to "export PATH=" & quoted form of (nodeBinDir & ":/usr/bin:/bin") & "; cd " & quoted form of repoPath & "; "
+	set repoPath to resolvedRepoPath()
+	set nodePath to resolvedNodePath()
+	set shellPrefix to "export PATH=" & quoted form of nodePath & "; cd " & quoted form of repoPath & "; "
 
 	try
 		set prepareOutput to do shell script shellPrefix & "./node_modules/.bin/tsx scripts/add-project.ts prepare " & quoted form of folderPath
