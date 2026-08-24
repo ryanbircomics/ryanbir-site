@@ -36,7 +36,7 @@ just redo this step.
 ## 3. Test it once yourself
 
 - Make a scratch folder with a couple of test images (name one `cover.jpg`)
-  and a JSON file (copy `src/content/portfolio/_template.json` and fill it in).
+  and a JSON file (copy `ProjectTemplate.json` from the repo root and fill it in).
 - Drag that folder onto the Desktop alias.
 - You should see a confirmation dialog summarizing the project. Publish it,
   confirm it shows up on the live site, then delete the test project
@@ -44,9 +44,10 @@ just redo this step.
 
 ## How Ryan uses it day to day
 
-1. Put his images + one JSON file (copied from `_template.json`, filled in
-   — see `src/content/portfolio/README.md` for what each field means and
-   what's required vs. optional) into a single folder. One image must be
+1. Put his images + one JSON file (copied from `ProjectTemplate.json` in
+   the repo root, filled in — see `ProjectTemplate-Guide.md` right next
+   to it for what each field means and what's required vs. optional)
+   into a single folder. One image must be
    named `cover` (e.g. `cover.jpg`).
 2. Drag that folder onto the `AddProject` icon on his Desktop (or
    double-click it and pick the folder from the dialog that appears).

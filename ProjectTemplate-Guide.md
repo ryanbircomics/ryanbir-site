@@ -1,8 +1,9 @@
 # Filling out a project's JSON file
 
-Copy `_template.json`, rename it whatever you like (the name doesn't
-matter — see below), and fill in the fields below. Save it into the same
-folder as your images, then drag that folder onto the `AddProject` app.
+Copy `ProjectTemplate.json` (sitting in the repo's root folder, next to
+`AddProject.app`) into the folder with your images. Rename the copy
+whatever you like — the name doesn't matter, see below — and fill in the
+fields below. Then drag that whole folder onto the `AddProject` app.
 
 | Field | Required? | What to put |
 |---|---|---|

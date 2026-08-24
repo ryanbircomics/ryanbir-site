@@ -9,9 +9,13 @@
 ## Project Structure
 
 ```
+AddProject.app             ← Compiled tool Ryan drags project folders onto
+ProjectTemplate.json       ← Copy this to start a new project's JSON
+ProjectTemplate-Guide.md   ← What each field in the template means
+scripts/                   ← The tool's logic — see "Adding a New Portfolio Project" below
 src/
   content/
-    config.ts           ← Collection schema (do not edit unless adding new fields)
+    config.ts           ← Collection schema (shared with scripts/portfolio-schema.ts)
     portfolio/          ← One .json file per project
   pages/
     index.astro         ← Home page
@@ -25,7 +29,6 @@ src/
   components/
     Nav.astro
     Footer.astro
-    ProjectCard.astro   ← Card used in portfolio grid and home page
   styles/
     global.css
 public/
@@ -54,9 +57,9 @@ in both places.
 
 Manually, a project is: a folder in `public/images/portfolio/<slug>/`
 containing `cover.jpg` (+ optional `01.jpg`, `02.jpg`, ...), and a matching
-`src/content/portfolio/<slug>.json` (copy `_template.json` — see
-`src/content/portfolio/README.md` for what each field means). `ranking`
-(lower = shown first) and `imageFolderLocation` are normally auto-filled by
+`src/content/portfolio/<slug>.json` (copy `ProjectTemplate.json` from the
+repo root — see `ProjectTemplate-Guide.md` next to it for what each field
+means). `ranking` (lower = shown first) and `imageFolderLocation` are normally auto-filled by
 the script, not written by hand.
 
 ## Colors
