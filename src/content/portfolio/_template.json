@@ -4,6 +4,7 @@
   "category": "pencils-inks",
   "date": "DD/MM/YYYY",
   "role": "",
-  "imageFolderLocation": "images/portfolio/folder-name",
-  "ranking": 10
+  "coCredit": "",
+  "coCreditLink": "",
+  "contentLink": ""
 }

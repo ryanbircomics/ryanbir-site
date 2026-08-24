@@ -1,19 +1,9 @@
-import { defineCollection, z } from "astro:content";
+import { defineCollection } from "astro:content";
+import { portfolioSchema } from "../../scripts/portfolio-schema";
 
 const portfolio = defineCollection({
   type: "data",
-  schema: z.object({
-    title: z.string(),
-    issueNumber: z.number().optional(),
-    date: z.string(), // DD/MM/YYYY
-    category: z.enum(["pencils-inks", "colors", "illustrations"]),
-    role: z.string(),
-    coCredit: z.string().optional(),
-    coCreditLink: z.string().url().optional(),
-    contentLink: z.string().url().optional(),
-    imageFolderLocation: z.string(), // e.g. "portfolio/nightfall-issue-1"
-    ranking: z.number().int().min(1),
-  }),
+  schema: portfolioSchema,
 });
 
 export const collections = { portfolio };

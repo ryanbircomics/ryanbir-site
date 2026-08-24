@@ -39,26 +39,24 @@ public/
 
 ## Adding a New Portfolio Project
 
-1. Create a folder in `public/images/portfolio/` — e.g. `public/images/portfolio/my-project/`
-2. Add `cover.jpg` (and any additional images named `01.jpg`, `02.jpg`, etc.)
-3. Create `src/content/portfolio/my-project.json` with this structure:
+Ryan adds new projects himself via the `AddProject` app on his desktop — see
+`scripts/SETUP.md` for how it's wired up and `scripts/add-project.ts` for
+the logic. It drags-and-drops a folder of images + a JSON file straight
+into the right place, processes the images, and publishes via a GUI
+confirmation dialog (no terminal, no git).
 
-```json
-{
-  "title": "Project Title",
-  "issueNumber": 1,
-  "date": "DD/MM/YYYY",
-  "role": "Pencils & Inks",
-  "coCredit": "Collaborator Name",
-  "coCreditLink": "https://collaboratorsite.com",
-  "contentLink": "https://link-to-buy-or-read.com",
-  "imageFolderLocation": "images/portfolio/my-project",
-  "ranking": 2
-}
-```
+For manual/technical edits, the same thing can be done by hand or via
+`npm run add-project -- prepare <folder>` (see that script's `--dry-run`
+flag for safe testing). The content schema lives in
+`scripts/portfolio-schema.ts` and is shared between the Astro content
+collection (`src/content/config.ts`) and the script — update it there, not
+in both places.
 
-- `issueNumber`, `coCredit`, `coCreditLink`, `contentLink` are all optional
-- `ranking`: lower number = shown first. Use 1 for your most important work.
+Manually, a project is: a folder in `public/images/portfolio/<slug>/`
+containing `cover.jpg` (+ optional `01.jpg`, `02.jpg`, ...), and a matching
+`src/content/portfolio/<slug>.json` (copy `_template.json`). `ranking`
+(lower = shown first) and `imageFolderLocation` are normally auto-filled by
+the script, not written by hand.
 
 ## Colors
 
