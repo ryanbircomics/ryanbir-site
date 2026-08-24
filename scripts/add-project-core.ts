@@ -161,9 +161,10 @@ function readProjectJson(sourceDir: string, jsonFile: string) {
     fail(`${jsonFile} isn't valid JSON: ${(err as Error).message}`);
   }
 
-  // Treat blank strings left over from the template as "not provided" —
-  // Ryan is more likely to leave a placeholder blank than delete the key.
-  for (const key of ["coCredit", "coCreditLink", "contentLink"]) {
+  // Treat blank values left over from the template as "not provided" — the
+  // point is he can leave an unused optional field sitting right there
+  // rather than having to delete the line.
+  for (const key of ["issueNumber", "coCredit", "coCreditLink", "contentLink"]) {
     if (typeof data[key] === "string" && data[key].trim() === "") {
       delete data[key];
     }
