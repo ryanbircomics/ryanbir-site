@@ -216,11 +216,12 @@ type ExistingProject = {
   ranking: number;
 };
 
-// Finds an existing project by title + issue number alone (category not
-// considered here — that's decided by the caller, since "same title/issue,
-// different category" and "same title/issue/category" mean different
-// things: one's a conflict, the other's an update).
-function findExistingByTitleIssue(title: string, issueNumber?: number): ExistingProject | null {
+// A project's identity is title + issue number + category, all three. The
+// same title (even the same title + issue number) can legitimately exist
+// as separate, independent projects in different categories — so only an
+// exact match on all three counts as "the same project" to update; a
+// title/issue match in a different category is simply unrelated.
+function findExistingProject(title: string, issueNumber: number | undefined, category: string): ExistingProject | null {
   if (!fs.existsSync(PORTFOLIO_CONTENT_DIR)) return null;
   const files = fs
     .readdirSync(PORTFOLIO_CONTENT_DIR)
@@ -231,7 +232,8 @@ function findExistingByTitleIssue(title: string, issueNumber?: number): Existing
       const data = JSON.parse(fs.readFileSync(path.join(PORTFOLIO_CONTENT_DIR, f), "utf-8"));
       const sameTitle = typeof data.title === "string" && data.title.trim().toLowerCase() === title.trim().toLowerCase();
       const sameIssue = (data.issueNumber ?? undefined) === (issueNumber ?? undefined);
-      if (sameTitle && sameIssue) {
+      const sameCategory = data.category === category;
+      if (sameTitle && sameIssue && sameCategory) {
         return {
           jsonSlug: f.replace(/\.json$/, ""),
           category: data.category,
@@ -247,20 +249,15 @@ function findExistingByTitleIssue(title: string, issueNumber?: number): Existing
 }
 
 // Decides where this submission lands: on top of an existing project (an
-// update — same title, issue number, AND category as something already
-// published) or as a brand-new one. Two different projects can share a
-// title if they're in different categories, so category has to match too
-// for it to count as "the same project," not just title + issue.
+// update — exact match on title, issue number, and category) or as a
+// brand-new one. Since two projects with the same title/issue can now
+// coexist in different categories, the plain title-derived slug can
+// collide even though this isn't a duplicate — in that case the category
+// gets folded into the slug to disambiguate, rather than blocking.
 function resolveTarget(title: string, issueNumber: number | undefined, category: string) {
-  const existing = findExistingByTitleIssue(title, issueNumber);
+  const existing = findExistingProject(title, issueNumber, category);
 
   if (existing) {
-    if (existing.category !== category) {
-      const existingLabel = CATEGORIES.find((c) => c.slug === existing.category)?.label ?? existing.category;
-      fail(
-        `A project titled "${title}"${issueNumber ? ` (issue ${issueNumber})` : ""} already exists under "${existingLabel}". To update that project, use "${existingLabel}" as its category too. To publish this as a separate, new entry with the same title, contact your site manager.`
-      );
-    }
     return {
       jsonSlug: existing.jsonSlug,
       imageFolderLocation: existing.imageFolderLocation,
@@ -269,15 +266,21 @@ function resolveTarget(title: string, issueNumber: number | undefined, category:
     };
   }
 
-  const jsonSlug = slugify(title, issueNumber);
-  if (!jsonSlug) {
+  const baseSlug = slugify(title, issueNumber);
+  if (!baseSlug) {
     fail("Couldn't build a name from the title — try a title with letters or numbers in it.");
   }
+
+  let jsonSlug = baseSlug;
   if (fs.existsSync(path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`))) {
-    // Only reachable if an unrelated title happens to slugify to the same
-    // string — a real collision, not a duplicate submission.
-    fail(`A project called "${jsonSlug}" already exists but has a different title. Contact your site manager.`);
+    // Taken — most likely the same title/issue already exists in a
+    // different category. Disambiguate by category instead of blocking.
+    jsonSlug = `${baseSlug}-${category}`;
+    if (fs.existsSync(path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`))) {
+      fail(`Couldn't find a unique name for this project. Contact your site manager.`);
+    }
   }
+
   return {
     jsonSlug,
     imageFolderLocation: `images/portfolio/${jsonSlug}`,
