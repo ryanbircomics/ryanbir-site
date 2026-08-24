@@ -357,6 +357,8 @@ function printSummary(finalData: ReturnType<typeof portfolioSchema.parse>, slug:
     [
       `Title: ${displayTitle}`,
       `Category: ${catLabel}`,
+      `Role: ${finalData.role}`,
+      `Date: ${finalData.date}`,
       `Images: ${extraImageCount + 1} (including cover)`,
       `Ranking: ${finalData.ranking}`,
       "",
