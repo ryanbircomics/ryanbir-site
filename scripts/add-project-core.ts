@@ -24,6 +24,15 @@ const REPO_ROOT = process.cwd();
 const PORTFOLIO_CONTENT_DIR = path.join(REPO_ROOT, "src/content/portfolio");
 const PORTFOLIO_IMAGES_DIR = path.join(REPO_ROOT, "public/images/portfolio");
 
+// Guards against two runs (e.g. an impatient double-drag) touching the repo
+// at once. There's no single process spanning "prepare ran, now waiting on
+// the confirmation dialog" — each phase is its own short-lived process — so
+// this can't be a PID-liveness check; it's a timestamp with a generous
+// timeout instead, so an interrupted run (crash, force-quit, closed lid)
+// always self-heals instead of permanently locking Ryan out.
+const LOCK_PATH = path.join(REPO_ROOT, ".add-project.lock");
+const LOCK_STALE_AFTER_MS = 20 * 60 * 1000;
+
 const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp"]);
 const IGNORED_FILES = new Set([".ds_store", "thumbs.db", "desktop.ini"]);
 
@@ -40,9 +49,17 @@ function relFromRoot(p: string): string {
   return path.relative(REPO_ROOT, p);
 }
 
+// Every subprocess call goes through this so stderr is always captured, not
+// inherited — "do shell script" (the GUI wrapper) reads whatever lands on
+// our own stderr as the error message, and a raw git/npm error bleeding
+// through there would bury our own friendlier message underneath it.
+function run(cmd: string, args: string[]): Buffer {
+  return execFileSync(cmd, args, { cwd: REPO_ROOT, stdio: ["ignore", "pipe", "pipe"] });
+}
+
 function git(args: string[]): string {
   try {
-    return execFileSync("git", args, { cwd: REPO_ROOT }).toString().trim();
+    return run("git", args).toString().trim();
   } catch (err) {
     const stderr = (err as any).stderr ? (err as any).stderr.toString().trim() : String(err);
     fail(`git ${args.join(" ")} failed: ${stderr}`);
@@ -62,10 +79,39 @@ function ensureCleanRepo() {
 
 function pullLatest() {
   try {
-    execFileSync("git", ["pull", "--ff-only", "origin", "main"], { cwd: REPO_ROOT });
-  } catch {
+    run("git", ["pull", "--ff-only", "origin", "main"]);
+  } catch (err) {
+    const stderr = (err as any).stderr ? (err as any).stderr.toString().toLowerCase() : "";
+    const looksOffline = [
+      "could not resolve host",
+      "could not read from remote repository",
+      "connection timed out",
+      "network is unreachable",
+      "failed to connect",
+      "operation timed out",
+      "unable to access",
+    ].some((s) => stderr.includes(s));
+
+    if (looksOffline) {
+      fail("Couldn't reach GitHub — check your internet connection and try again.");
+    }
     fail("Couldn't update from GitHub (your copy may have diverged). Please contact your site manager.");
   }
+}
+
+function acquireLock() {
+  if (fs.existsSync(LOCK_PATH)) {
+    const startedAt = Number(fs.readFileSync(LOCK_PATH, "utf-8").trim());
+    const age = Date.now() - startedAt;
+    if (Number.isFinite(age) && age >= 0 && age < LOCK_STALE_AFTER_MS) {
+      fail("Add Project is already running — maybe a confirmation dialog is open somewhere? Finish or cancel that one first.");
+    }
+  }
+  fs.writeFileSync(LOCK_PATH, String(Date.now()));
+}
+
+function releaseLock() {
+  fs.rmSync(LOCK_PATH, { force: true });
 }
 
 function readSourceFolder(sourceDir: string) {
@@ -228,7 +274,7 @@ async function processImage(srcPath: string, destPath: string) {
 
 function runBuildCheck() {
   try {
-    execFileSync("npm", ["run", "build"], { cwd: REPO_ROOT });
+    run("npm", ["run", "build"]);
   } catch (err) {
     const output = ((err as any).stdout?.toString() ?? "") + ((err as any).stderr?.toString() ?? "");
     fail(`The site failed to build with this project's data — nothing was saved:\n${output.slice(-2000)}`);
@@ -239,7 +285,7 @@ function cleanupSlug(slug: string) {
   const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
   const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
   try {
-    execFileSync("git", ["restore", "--staged", "--", destImagesDir, destJsonPath], { cwd: REPO_ROOT });
+    run("git", ["restore", "--staged", "--", destImagesDir, destJsonPath]);
   } catch {
     // may not have been staged yet — that's fine
   }
@@ -248,49 +294,61 @@ function cleanupSlug(slug: string) {
 }
 
 async function prepare(sourceDir: string) {
-  if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
-    fail(`"${sourceDir}" isn't a folder.`);
-  }
-
-  ensureCleanRepo();
-  pullLatest();
-
-  const { jsonFile, imageFiles } = readSourceFolder(sourceDir);
-  const projectData = readProjectJson(sourceDir, jsonFile);
-  const { coverFile, rest } = organizeImages(imageFiles);
-
-  const slug = computeSlug(projectData.title, projectData.issueNumber);
-  const ranking = projectData.ranking ?? nextRanking(projectData.category);
-  const imageFolderLocation = `images/portfolio/${slug}`;
-
-  const finalData = portfolioSchema.parse({
-    ...projectData,
-    ranking,
-    imageFolderLocation,
-  });
-
-  const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
-  const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
-
+  // If this throws (something else is already running), there's nothing to
+  // release — we never acquired it. Everything past this point is wrapped
+  // so any failure releases the lock; success leaves it held on purpose,
+  // since commit()/abort() are separate later invocations that release it.
+  acquireLock();
   try {
-    fs.mkdirSync(destImagesDir, { recursive: true });
-    await processImage(path.join(sourceDir, coverFile), path.join(destImagesDir, "cover.jpg"));
-    for (let i = 0; i < rest.length; i++) {
-      const num = String(i + 1).padStart(2, "0");
-      await processImage(path.join(sourceDir, rest[i]), path.join(destImagesDir, `${num}.jpg`));
+    if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
+      fail(`"${sourceDir}" isn't a folder.`);
     }
-    fs.writeFileSync(destJsonPath, JSON.stringify(finalData, null, 2) + "\n");
 
-    runBuildCheck();
+    ensureCleanRepo();
+    pullLatest();
 
-    execFileSync("git", ["add", "--", relFromRoot(destImagesDir), relFromRoot(destJsonPath)], {
-      cwd: REPO_ROOT,
+    const { jsonFile, imageFiles } = readSourceFolder(sourceDir);
+    const projectData = readProjectJson(sourceDir, jsonFile);
+    const { coverFile, rest } = organizeImages(imageFiles);
+
+    const slug = computeSlug(projectData.title, projectData.issueNumber);
+    const ranking = projectData.ranking ?? nextRanking(projectData.category);
+    const imageFolderLocation = `images/portfolio/${slug}`;
+
+    const finalData = portfolioSchema.parse({
+      ...projectData,
+      ranking,
+      imageFolderLocation,
     });
+
+    const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
+    const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
+
+    try {
+      fs.mkdirSync(destImagesDir, { recursive: true });
+      await processImage(path.join(sourceDir, coverFile), path.join(destImagesDir, "cover.jpg"));
+      for (let i = 0; i < rest.length; i++) {
+        const num = String(i + 1).padStart(2, "0");
+        await processImage(path.join(sourceDir, rest[i]), path.join(destImagesDir, `${num}.jpg`));
+      }
+      fs.writeFileSync(destJsonPath, JSON.stringify(finalData, null, 2) + "\n");
+
+      runBuildCheck();
+
+      run("git", ["add", "--", relFromRoot(destImagesDir), relFromRoot(destJsonPath)]);
+    } catch (err) {
+      cleanupSlug(slug);
+      throw err;
+    }
+
+    printSummary(finalData, slug, rest.length);
   } catch (err) {
-    cleanupSlug(slug);
+    releaseLock();
     throw err;
   }
+}
 
+function printSummary(finalData: ReturnType<typeof portfolioSchema.parse>, slug: string, extraImageCount: number) {
   const catLabel = CATEGORIES.find((c) => c.slug === finalData.category)?.label ?? finalData.category;
   const displayTitle = finalData.issueNumber ? `${finalData.title} #${finalData.issueNumber}` : finalData.title;
 
@@ -299,8 +357,8 @@ async function prepare(sourceDir: string) {
     [
       `Title: ${displayTitle}`,
       `Category: ${catLabel}`,
-      `Images: ${rest.length + 1} (including cover)`,
-      `Ranking: ${ranking}`,
+      `Images: ${extraImageCount + 1} (including cover)`,
+      `Ranking: ${finalData.ranking}`,
       "",
       "Publish this to the live site?",
     ].join("\n")
@@ -308,37 +366,45 @@ async function prepare(sourceDir: string) {
 }
 
 function commit(slug: string, opts: { dryRun: boolean }) {
-  const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
-  const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
-  if (!fs.existsSync(destJsonPath)) {
-    fail(`Nothing staged for "${slug}" — run prepare again.`);
-  }
-  const staged = git(["diff", "--cached", "--name-only"]);
-  if (!staged.includes(slug)) {
-    fail(`The staged changes don't match "${slug}" anymore — please start over.`);
-  }
-
-  const data = JSON.parse(fs.readFileSync(destJsonPath, "utf-8"));
-  execFileSync("git", ["commit", "-m", `Add project: ${data.title}`], { cwd: REPO_ROOT });
-
-  if (opts.dryRun) {
-    console.log("DRY RUN — commit made locally, skipping git push.");
-    return;
-  }
-
   try {
-    execFileSync("git", ["push", "origin", "main"], { cwd: REPO_ROOT });
-  } catch (err) {
-    const stderr = (err as any).stderr ? (err as any).stderr.toString().trim() : String(err);
-    fail(`The project was saved locally but couldn't be pushed to GitHub. Please contact your site manager.\n${stderr}`);
-  }
+    const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
+    const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
+    if (!fs.existsSync(destJsonPath)) {
+      fail(`Nothing staged for "${slug}" — run prepare again.`);
+    }
+    const staged = git(["diff", "--cached", "--name-only"]);
+    if (!staged.includes(slug)) {
+      fail(`The staged changes don't match "${slug}" anymore — please start over.`);
+    }
 
-  console.log(`Published "${data.title}". The live site will update in a minute or two.`);
+    const data = JSON.parse(fs.readFileSync(destJsonPath, "utf-8"));
+    run("git", ["commit", "-m", `Add project: ${data.title}`]);
+
+    if (opts.dryRun) {
+      console.log("DRY RUN — commit made locally, skipping git push.");
+      return;
+    }
+
+    try {
+      run("git", ["push", "origin", "main"]);
+    } catch (err) {
+      const stderr = (err as any).stderr ? (err as any).stderr.toString().trim() : String(err);
+      fail(`The project was saved locally but couldn't be pushed to GitHub. Please contact your site manager.\n${stderr}`);
+    }
+
+    console.log(`Published "${data.title}". The live site will update in a minute or two.`);
+  } finally {
+    releaseLock();
+  }
 }
 
 function abort(slug: string) {
-  cleanupSlug(slug);
-  console.log("Cancelled — nothing was changed.");
+  try {
+    cleanupSlug(slug);
+    console.log("Cancelled — nothing was changed.");
+  } finally {
+    releaseLock();
+  }
 }
 
 async function main() {

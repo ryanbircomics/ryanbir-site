@@ -46,6 +46,12 @@ on handleProject(folderPath)
 	set nodePath to resolvedNodePath()
 	set shellPrefix to "export PATH=" & quoted form of nodePath & "; cd " & quoted form of repoPath & "; "
 
+	-- Processing (pulling updates, resizing images, a full site build check)
+	-- can take a while with no other feedback, which invites an impatient
+	-- second drag-and-drop. This auto-dismisses on its own, so it doesn't
+	-- actually block — it's just here to set expectations up front.
+	display dialog "Working on it — this can take up to a minute. Please don't drop another folder in the meantime." with title "Add Project" buttons {"OK"} default button "OK" giving up after 3
+
 	try
 		set prepareOutput to do shell script shellPrefix & "./node_modules/.bin/tsx scripts/add-project.ts prepare " & quoted form of folderPath
 	on error errMsg
@@ -70,9 +76,17 @@ on handleProject(folderPath)
 	set summaryText to summaryLines as text
 	set AppleScript's text item delimiters to ""
 
-	display dialog summaryText with title "Add Project" buttons {"Cancel", "Publish"} default button "Publish"
+	-- Marking a cancel button means pressing Escape or the window's close
+	-- control behaves the same as clicking "Cancel" (runs abort, releasing
+	-- the lock) instead of raising an uncaught error that would leave the
+	-- lock held until its timeout.
+	set wantsPublish to false
+	try
+		display dialog summaryText with title "Add Project" buttons {"Cancel", "Publish"} default button "Publish" cancel button "Cancel"
+		set wantsPublish to true
+	end try
 
-	if button returned of result is "Publish" then
+	if wantsPublish then
 		try
 			set commitOutput to do shell script shellPrefix & "./node_modules/.bin/tsx scripts/add-project.ts commit " & quoted form of projectSlug
 			display dialog commitOutput with title "Published" buttons {"OK"} default button "OK"
