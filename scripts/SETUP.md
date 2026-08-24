@@ -44,8 +44,10 @@ just redo this step.
 
 ## How Ryan uses it day to day
 
-1. Put his images + one JSON file (copied from `_template.json`, filled in)
-   into a single folder. One image must be named `cover` (e.g. `cover.jpg`).
+1. Put his images + one JSON file (copied from `_template.json`, filled in
+   — see `src/content/portfolio/README.md` for what each field means and
+   what's required vs. optional) into a single folder. One image must be
+   named `cover` (e.g. `cover.jpg`).
 2. Drag that folder onto the `AddProject` icon on his Desktop (or
    double-click it and pick the folder from the dialog that appears).
 3. A dialog shows what's about to be published — click **Publish** to go

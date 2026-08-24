@@ -54,7 +54,8 @@ in both places.
 
 Manually, a project is: a folder in `public/images/portfolio/<slug>/`
 containing `cover.jpg` (+ optional `01.jpg`, `02.jpg`, ...), and a matching
-`src/content/portfolio/<slug>.json` (copy `_template.json`). `ranking`
+`src/content/portfolio/<slug>.json` (copy `_template.json` — see
+`src/content/portfolio/README.md` for what each field means). `ranking`
 (lower = shown first) and `imageFolderLocation` are normally auto-filled by
 the script, not written by hand.
 
