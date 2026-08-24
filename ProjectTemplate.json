@@ -1,5 +1,4 @@
 {
-  "_instructions": "Delete this whole line when you're done. Required: title, category, date, role. Optional — delete the whole line if you're not using it: issueNumber, coCredit, coCreditLink, contentLink. category must be exactly one of: pencils-inks, colors, illustrations.",
   "title": "REPLACE WITH THE PROJECT TITLE",
   "issueNumber": 1,
   "category": "pencils-inks OR colors OR illustrations — pick one",

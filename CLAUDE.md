@@ -57,9 +57,8 @@ in both places.
 Manually, a project is: a folder in `public/images/portfolio/<slug>/`
 containing `cover.jpg` (+ optional `01.jpg`, `02.jpg`, ...), and a matching
 `src/content/portfolio/<slug>.json` (copy `ProjectTemplate.json` from the
-repo root — it's self-documenting via placeholder text and an
-`_instructions` key that gets silently stripped by validation, so no
-separate guide is needed). `ranking` (lower = shown first) and `imageFolderLocation` are normally auto-filled by
+repo root — placeholder text in each field explains what goes there).
+`ranking` (lower = shown first) and `imageFolderLocation` are normally auto-filled by
 the script, not written by hand.
 
 ## Colors

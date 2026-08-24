@@ -45,9 +45,8 @@ just redo this step.
 ## How Ryan uses it day to day
 
 1. Put his images + one JSON file (copied from `ProjectTemplate.json` in
-   the repo root — it's self-explanatory, with placeholder text in each
-   field and an `_instructions` note at the top that he deletes when done)
-   into a single folder. One image must be
+   the repo root, with placeholder text in each field showing what goes
+   there) into a single folder. One image must be
    named `cover` (e.g. `cover.jpg`).
 2. Drag that folder onto the `AddProject` icon on his Desktop (or
    double-click it and pick the folder from the dialog that appears).
