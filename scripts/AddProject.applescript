@@ -65,13 +65,25 @@ on handleProject(folderPath)
 	set outputLines to text items of prepareOutput
 	set AppleScript's text item delimiters to ""
 
-	set slugLine to item 1 of outputLines
-	set projectSlug to text 6 thru -1 of slugLine -- strip leading "SLUG:"
-
+	-- Find the "SLUG:<slug>" line wherever it is, rather than assuming it's
+	-- always line 1 — a stray line ahead of it (e.g. progress output that
+	-- slipped onto stdout) would otherwise silently produce a garbage slug.
+	set projectSlug to ""
 	set summaryLines to {}
-	repeat with i from 2 to (count of outputLines)
-		set end of summaryLines to item i of outputLines
+	repeat with i from 1 to (count of outputLines)
+		set thisLine to item i of outputLines
+		if thisLine begins with "SLUG:" then
+			set projectSlug to text 6 thru -1 of thisLine
+		else
+			set end of summaryLines to thisLine
+		end if
 	end repeat
+
+	if projectSlug is "" then
+		display dialog "Something went wrong reading the result — no project ID was found, so nothing was published." with title "Add Project" buttons {"OK"} default button "OK" with icon stop
+		return
+	end if
+
 	set AppleScript's text item delimiters to return
 	set summaryText to summaryLines as text
 	set AppleScript's text item delimiters to ""

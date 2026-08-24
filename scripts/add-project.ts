@@ -25,7 +25,10 @@ function ensureDependencies() {
 
   if (fs.existsSync(nodeModulesPath) && lockHash === markerHash) return;
 
-  console.log("Installing required components — this may take a minute...");
+  // stderr, not stdout: the AppleScript wrapper parses prepare's stdout
+  // expecting a "SLUG:<slug>" line, and a stray progress message ahead of
+  // it there would throw that parsing off.
+  console.error("Installing required components — this may take a minute...");
   try {
     execFileSync("npm", ["install"], { cwd: REPO_ROOT, stdio: ["ignore", "pipe", "pipe"] });
   } catch (err) {
