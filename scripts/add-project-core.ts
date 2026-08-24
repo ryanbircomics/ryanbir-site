@@ -22,7 +22,6 @@ import {
 
 const REPO_ROOT = process.cwd();
 const PORTFOLIO_CONTENT_DIR = path.join(REPO_ROOT, "src/content/portfolio");
-const PORTFOLIO_IMAGES_DIR = path.join(REPO_ROOT, "public/images/portfolio");
 
 // Guards against two runs (e.g. an impatient double-drag) touching the repo
 // at once. There's no single process spanning "prepare ran, now waiting on
@@ -210,7 +209,18 @@ function nextRanking(category: string): number {
   return max + 1;
 }
 
-function findExistingByTitle(title: string, issueNumber?: number): string | null {
+type ExistingProject = {
+  jsonSlug: string;
+  category: string;
+  imageFolderLocation: string;
+  ranking: number;
+};
+
+// Finds an existing project by title + issue number alone (category not
+// considered here — that's decided by the caller, since "same title/issue,
+// different category" and "same title/issue/category" mean different
+// things: one's a conflict, the other's an update).
+function findExistingByTitleIssue(title: string, issueNumber?: number): ExistingProject | null {
   if (!fs.existsSync(PORTFOLIO_CONTENT_DIR)) return null;
   const files = fs
     .readdirSync(PORTFOLIO_CONTENT_DIR)
@@ -221,7 +231,14 @@ function findExistingByTitle(title: string, issueNumber?: number): string | null
       const data = JSON.parse(fs.readFileSync(path.join(PORTFOLIO_CONTENT_DIR, f), "utf-8"));
       const sameTitle = typeof data.title === "string" && data.title.trim().toLowerCase() === title.trim().toLowerCase();
       const sameIssue = (data.issueNumber ?? undefined) === (issueNumber ?? undefined);
-      if (sameTitle && sameIssue) return f;
+      if (sameTitle && sameIssue) {
+        return {
+          jsonSlug: f.replace(/\.json$/, ""),
+          category: data.category,
+          imageFolderLocation: data.imageFolderLocation,
+          ranking: data.ranking,
+        };
+      }
     } catch {
       // an existing file being unreadable isn't this run's problem
     }
@@ -229,25 +246,44 @@ function findExistingByTitle(title: string, issueNumber?: number): string | null
   return null;
 }
 
-function computeSlug(title: string, issueNumber?: number): string {
-  const existing = findExistingByTitle(title, issueNumber);
+// Decides where this submission lands: on top of an existing project (an
+// update — same title, issue number, AND category as something already
+// published) or as a brand-new one. Two different projects can share a
+// title if they're in different categories, so category has to match too
+// for it to count as "the same project," not just title + issue.
+function resolveTarget(title: string, issueNumber: number | undefined, category: string) {
+  const existing = findExistingByTitleIssue(title, issueNumber);
+
   if (existing) {
-    fail(
-      `A project with that same title${issueNumber ? ` and issue number` : ""} already exists (${existing}). Use a different title (or issue number), or contact your site manager if you meant to update an existing one.`
-    );
+    if (existing.category !== category) {
+      const existingLabel = CATEGORIES.find((c) => c.slug === existing.category)?.label ?? existing.category;
+      fail(
+        `A project titled "${title}"${issueNumber ? ` (issue ${issueNumber})` : ""} already exists under "${existingLabel}". To update that project, use "${existingLabel}" as its category too. To publish this as a separate, new entry with the same title, contact your site manager.`
+      );
+    }
+    return {
+      jsonSlug: existing.jsonSlug,
+      imageFolderLocation: existing.imageFolderLocation,
+      isReplace: true,
+      existingRanking: existing.ranking as number | undefined,
+    };
   }
 
-  const slug = slugify(title, issueNumber);
-  if (!slug) {
+  const jsonSlug = slugify(title, issueNumber);
+  if (!jsonSlug) {
     fail("Couldn't build a name from the title — try a title with letters or numbers in it.");
   }
-  const jsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
-  if (fs.existsSync(jsonPath)) {
-    fail(
-      `A project called "${slug}" already exists. Use a different title (or issue number), or contact your site manager if you meant to update an existing one.`
-    );
+  if (fs.existsSync(path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`))) {
+    // Only reachable if an unrelated title happens to slugify to the same
+    // string — a real collision, not a duplicate submission.
+    fail(`A project called "${jsonSlug}" already exists but has a different title. Contact your site manager.`);
   }
-  return slug;
+  return {
+    jsonSlug,
+    imageFolderLocation: `images/portfolio/${jsonSlug}`,
+    isReplace: false,
+    existingRanking: undefined as number | undefined,
+  };
 }
 
 function organizeImages(imageFiles: string[]) {
@@ -282,16 +318,47 @@ function runBuildCheck() {
   }
 }
 
-function cleanupSlug(slug: string) {
-  const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
-  const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
+// Undoes whatever prepare() (or a previous run) wrote for this project,
+// whether it's a failure mid-prepare or the user clicking Cancel. Critical
+// distinction: if this project already existed at HEAD (an update), we must
+// *restore* it to exactly what was last committed, never just delete it —
+// these are live files, and deleting them would wipe out the currently-
+// published version over what should be a no-op cancellation. Only a
+// genuinely new project (never committed before) is safe to just delete.
+function cleanupSlug(jsonSlug: string, imageFolderLocation: string) {
+  const destImagesDir = path.join(REPO_ROOT, "public", imageFolderLocation);
+  const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`);
+  const jsonRel = relFromRoot(destJsonPath);
+  const imagesRel = relFromRoot(destImagesDir);
+
+  let existedAtHead = false;
   try {
-    run("git", ["restore", "--staged", "--", destImagesDir, destJsonPath]);
+    run("git", ["cat-file", "-e", `HEAD:${jsonRel}`]);
+    existedAtHead = true;
   } catch {
-    // may not have been staged yet — that's fine
+    existedAtHead = false;
   }
-  fs.rmSync(destImagesDir, { recursive: true, force: true });
-  fs.rmSync(destJsonPath, { force: true });
+
+  if (existedAtHead) {
+    try {
+      run("git", ["restore", "--staged", "--worktree", "--", imagesRel, jsonRel]);
+    } catch {
+      // nothing was staged/changed yet — fine
+    }
+    try {
+      run("git", ["clean", "-fd", "--", imagesRel]);
+    } catch {
+      // no new untracked files to remove — fine
+    }
+  } else {
+    try {
+      run("git", ["restore", "--staged", "--", imagesRel, jsonRel]);
+    } catch {
+      // may not have been staged yet — fine
+    }
+    fs.rmSync(destImagesDir, { recursive: true, force: true });
+    fs.rmSync(destJsonPath, { force: true });
+  }
 }
 
 async function prepare(sourceDir: string) {
@@ -312,9 +379,12 @@ async function prepare(sourceDir: string) {
     const projectData = readProjectJson(sourceDir, jsonFile);
     const { coverFile, rest } = organizeImages(imageFiles);
 
-    const slug = computeSlug(projectData.title, projectData.issueNumber);
-    const ranking = projectData.ranking ?? nextRanking(projectData.category);
-    const imageFolderLocation = `images/portfolio/${slug}`;
+    const { jsonSlug, imageFolderLocation, isReplace, existingRanking } = resolveTarget(
+      projectData.title,
+      projectData.issueNumber,
+      projectData.category
+    );
+    const ranking = projectData.ranking ?? existingRanking ?? nextRanking(projectData.category);
 
     const finalData = portfolioSchema.parse({
       ...projectData,
@@ -322,10 +392,13 @@ async function prepare(sourceDir: string) {
       imageFolderLocation,
     });
 
-    const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
-    const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
+    const destImagesDir = path.join(REPO_ROOT, "public", imageFolderLocation);
+    const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`);
 
     try {
+      // Clear first (harmless no-op for a new project) so a replace with
+      // fewer images than before doesn't leave old ones stranded.
+      fs.rmSync(destImagesDir, { recursive: true, force: true });
       fs.mkdirSync(destImagesDir, { recursive: true });
       await processImage(path.join(sourceDir, coverFile), path.join(destImagesDir, "cover.jpg"));
       for (let i = 0; i < rest.length; i++) {
@@ -338,50 +411,73 @@ async function prepare(sourceDir: string) {
 
       run("git", ["add", "--", relFromRoot(destImagesDir), relFromRoot(destJsonPath)]);
     } catch (err) {
-      cleanupSlug(slug);
+      cleanupSlug(jsonSlug, imageFolderLocation);
       throw err;
     }
 
-    printSummary(finalData, slug, rest.length);
+    printSummary(finalData, jsonSlug, rest.length, isReplace);
   } catch (err) {
     releaseLock();
     throw err;
   }
 }
 
-function printSummary(finalData: ReturnType<typeof portfolioSchema.parse>, slug: string, extraImageCount: number) {
+function printSummary(
+  finalData: ReturnType<typeof portfolioSchema.parse>,
+  slug: string,
+  extraImageCount: number,
+  isReplace: boolean
+) {
   const catLabel = CATEGORIES.find((c) => c.slug === finalData.category)?.label ?? finalData.category;
   const displayTitle = finalData.issueNumber ? `${finalData.title} #${finalData.issueNumber}` : finalData.title;
 
-  console.log(`SLUG:${slug}`);
-  console.log(
-    [
-      `Title: ${displayTitle}`,
-      `Category: ${catLabel}`,
-      `Role: ${finalData.role}`,
-      `Date: ${finalData.date}`,
-      `Images: ${extraImageCount + 1} (including cover)`,
-      `Ranking: ${finalData.ranking}`,
-      "",
-      "Publish this to the live site?",
-    ].join("\n")
+  const lines: string[] = [];
+  if (isReplace) {
+    lines.push(
+      `This will REPLACE the existing project "${displayTitle}" — all of its current images will be replaced by the ${extraImageCount + 1} you're submitting now.`,
+      ""
+    );
+  }
+  lines.push(
+    `Title: ${displayTitle}`,
+    `Category: ${catLabel}`,
+    `Role: ${finalData.role}`,
+    `Date: ${finalData.date}`,
+    `Images: ${extraImageCount + 1} (including cover)`,
+    `Ranking: ${finalData.ranking}`,
+    "",
+    isReplace ? "Publish this update?" : "Publish this to the live site?"
   );
+
+  console.log(`SLUG:${slug}`);
+  console.log(lines.join("\n"));
 }
 
-function commit(slug: string, opts: { dryRun: boolean }) {
+function loadStagedImageFolderLocation(jsonSlug: string): { destJsonPath: string; imageFolderLocation: string; title: string } {
+  const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`);
+  if (!fs.existsSync(destJsonPath)) {
+    fail(`Nothing staged for "${jsonSlug}" — run prepare again.`);
+  }
+  const data = JSON.parse(fs.readFileSync(destJsonPath, "utf-8"));
+  return { destJsonPath, imageFolderLocation: data.imageFolderLocation, title: data.title };
+}
+
+function commit(jsonSlug: string, opts: { dryRun: boolean }) {
   try {
-    const destImagesDir = path.join(PORTFOLIO_IMAGES_DIR, slug);
-    const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${slug}.json`);
-    if (!fs.existsSync(destJsonPath)) {
-      fail(`Nothing staged for "${slug}" — run prepare again.`);
-    }
+    const { destJsonPath, title } = loadStagedImageFolderLocation(jsonSlug);
+
     const staged = git(["diff", "--cached", "--name-only"]);
-    if (!staged.includes(slug)) {
-      fail(`The staged changes don't match "${slug}" anymore — please start over.`);
+    if (!staged.includes(jsonSlug)) {
+      fail(`The staged changes don't match "${jsonSlug}" anymore — please start over.`);
     }
 
-    const data = JSON.parse(fs.readFileSync(destJsonPath, "utf-8"));
-    run("git", ["commit", "-m", `Add project: ${data.title}`]);
+    // Was this project already committed before (an update) or is it brand
+    // new? git's own index already knows — "M" (modified) vs "A" (added) —
+    // no need to thread that state through from prepare() separately.
+    const statusLine = git(["diff", "--cached", "--name-status", "--", relFromRoot(destJsonPath)]);
+    const isReplace = statusLine.startsWith("M");
+
+    run("git", ["commit", "-m", `${isReplace ? "Update" : "Add"} project: ${title}`]);
 
     if (opts.dryRun) {
       console.log("DRY RUN — commit made locally, skipping git push.");
@@ -395,15 +491,16 @@ function commit(slug: string, opts: { dryRun: boolean }) {
       fail(`The project was saved locally but couldn't be pushed to GitHub. Please contact your site manager.\n${stderr}`);
     }
 
-    console.log(`Published "${data.title}". The live site will update in a minute or two.`);
+    console.log(`${isReplace ? "Updated" : "Published"} "${title}". The live site will update in a minute or two.`);
   } finally {
     releaseLock();
   }
 }
 
-function abort(slug: string) {
+function abort(jsonSlug: string) {
   try {
-    cleanupSlug(slug);
+    const { imageFolderLocation } = loadStagedImageFolderLocation(jsonSlug);
+    cleanupSlug(jsonSlug, imageFolderLocation);
     console.log("Cancelled — nothing was changed.");
   } finally {
     releaseLock();

@@ -101,7 +101,7 @@ on handleProject(folderPath)
 	if wantsPublish then
 		try
 			set commitOutput to do shell script shellPrefix & "./node_modules/.bin/tsx scripts/add-project.ts commit " & quoted form of projectSlug
-			display dialog commitOutput with title "Published" buttons {"OK"} default button "OK"
+			display dialog commitOutput with title "Add Project" buttons {"OK"} default button "OK"
 		on error errMsg
 			display dialog errMsg with title "Publish failed" buttons {"OK"} default button "OK" with icon stop
 		end try
