@@ -4,6 +4,7 @@
   "category": "pencils-inks OR colors OR illustrations — pick one",
   "date": "DD/MM/YYYY",
   "role": "REPLACE WITH WHAT YOU DID, e.g. Pencils, Inks",
+  "ranking": "REPLACE WITH A NUMBER — lower number = shown first within this category, e.g. 1",
   "coCredit": "",
   "coCreditLink": "",
   "contentLink": ""
