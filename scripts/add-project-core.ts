@@ -290,10 +290,18 @@ function resolveTarget(title: string, issueNumber: number | undefined, category:
 }
 
 function organizeImages(imageFiles: string[]) {
-  const coverFile = imageFiles.find((f) => path.parse(f).name.toLowerCase() === "cover");
-  if (!coverFile) {
-    fail('No cover image found. Name one image file "cover" (e.g. cover.jpg) — it\'ll be used as the main image.');
+  const coverCandidates = imageFiles.filter((f) => path.parse(f).name.toLowerCase().includes("cover"));
+  if (coverCandidates.length === 0) {
+    fail(
+      'No cover image found. Make sure "cover" is somewhere in one image\'s file name (e.g. "cover.jpg" or "dark souls 01 cover.jpg") — it\'ll be used as the main image.'
+    );
   }
+  if (coverCandidates.length > 1) {
+    fail(
+      `Found more than one image with "cover" in its name (${coverCandidates.join(", ")}) — rename so only one does.`
+    );
+  }
+  const coverFile = coverCandidates[0];
   const rest = imageFiles.filter((f) => f !== coverFile).sort((a, b) => a.localeCompare(b));
   return { coverFile, rest };
 }
