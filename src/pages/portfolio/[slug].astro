@@ -78,8 +78,8 @@ const { type } = Astro.props;
           ) : (
             <div class="space-y-24">
               {projects.map((project) => {
-                const { title, issueNumber, date, role, coCredit, coCreditLink, contentLink, imageFolderLocation } = project.data;
-                const displayTitle = issueNumber ? `${title} #${issueNumber}` : title;
+                const { title, issueNumber, role, coCredit, coCreditLink, contentLink, imageFolderLocation } = project.data;
+                const displayTitle = issueNumber ? `${title} Issue #${issueNumber}` : title;
                 const images = getProjectImages(imageFolderLocation);
                 return (
                   <section>
@@ -106,11 +106,10 @@ const { type } = Astro.props;
                         </a>
                       ) : coCredit}</span>
                     )}</p>
-                    <p class="text-muted text-xs mb-8">{date}</p>
 
                     <!-- Image grid -->
                     {images.length > 0 ? (
-                      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" data-lightbox-group={project.id}>
                         {images.map((filename) => (
                           <div class="overflow-hidden bg-surface">
                             <img
@@ -118,6 +117,7 @@ const { type } = Astro.props;
                               alt={`${displayTitle} — ${filename}`}
                               class="w-full h-auto object-cover hover:opacity-80 transition-opacity cursor-pointer"
                               loading="lazy"
+                              data-lightbox-img
                             />
                           </div>
                         ))}
@@ -132,15 +132,97 @@ const { type } = Astro.props;
           )}
         </main>
         <Footer />
+
+        <div
+          id="lightbox"
+          class="fixed inset-0 z-50 hidden items-center justify-center bg-black/95"
+        >
+          <button
+            id="lightbox-close"
+            aria-label="Close"
+            class="absolute top-4 right-4 md:top-6 md:right-6 text-white/80 hover:text-white text-4xl leading-none w-12 h-12 flex items-center justify-center"
+          >
+            &times;
+          </button>
+          <button
+            id="lightbox-prev"
+            aria-label="Previous image"
+            class="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-5xl leading-none w-12 h-12 flex items-center justify-center"
+          >
+            &#8249;
+          </button>
+          <img id="lightbox-image" src="" alt="" class="max-w-[90vw] max-h-[85vh] object-contain" />
+          <button
+            id="lightbox-next"
+            aria-label="Next image"
+            class="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 text-white/80 hover:text-white text-5xl leading-none w-12 h-12 flex items-center justify-center"
+          >
+            &#8250;
+          </button>
+        </div>
+
+        <script>
+          const lightbox = document.getElementById("lightbox");
+          const lightboxImage = document.getElementById("lightbox-image") as HTMLImageElement | null;
+          const closeBtn = document.getElementById("lightbox-close");
+          const prevBtn = document.getElementById("lightbox-prev");
+          const nextBtn = document.getElementById("lightbox-next");
+
+          if (lightbox && lightboxImage && closeBtn && prevBtn && nextBtn) {
+            let currentImages: HTMLImageElement[] = [];
+            let currentIndex = 0;
+
+            const show = (index: number) => {
+              currentIndex = (index + currentImages.length) % currentImages.length;
+              const img = currentImages[currentIndex];
+              lightboxImage.src = img.src;
+              lightboxImage.alt = img.alt;
+            };
+
+            const open = (images: HTMLImageElement[], index: number) => {
+              currentImages = images;
+              show(index);
+              lightbox.classList.remove("hidden");
+              lightbox.classList.add("flex");
+              document.body.style.overflow = "hidden";
+            };
+
+            const close = () => {
+              lightbox.classList.add("hidden");
+              lightbox.classList.remove("flex");
+              document.body.style.overflow = "";
+            };
+
+            document.querySelectorAll("[data-lightbox-group]").forEach((group) => {
+              const images = Array.from(group.querySelectorAll("img[data-lightbox-img]")) as HTMLImageElement[];
+              images.forEach((img, i) => {
+                img.addEventListener("click", () => open(images, i));
+              });
+            });
+
+            closeBtn.addEventListener("click", close);
+            prevBtn.addEventListener("click", () => show(currentIndex - 1));
+            nextBtn.addEventListener("click", () => show(currentIndex + 1));
+            lightbox.addEventListener("click", (e) => {
+              if (e.target === lightbox) close();
+            });
+            document.addEventListener("keydown", (e) => {
+              if (lightbox.classList.contains("hidden")) return;
+              if (e.key === "Escape") close();
+              if (e.key === "ArrowLeft") show(currentIndex - 1);
+              if (e.key === "ArrowRight") show(currentIndex + 1);
+            });
+          }
+        </script>
       </Layout>
     );
   })()
 ) : (
   (() => {
     const { project } = Astro.props;
-    const { title, issueNumber, date, role, coCredit, coCreditLink, contentLink, imageFolderLocation, category } =
+    const { title, issueNumber, role, coCredit, coCreditLink, contentLink, imageFolderLocation, category } =
       project.data;
-    const displayTitle = issueNumber ? `${title} #${issueNumber}` : title;
+    const displayTitle = issueNumber ? `${title} Issue #${issueNumber}` : title;
     const coverImage = `/${imageFolderLocation}/cover.jpg`;
     const catLabel = CATEGORIES.find((c) => c.slug === category)?.label ?? category;
     return (
@@ -182,10 +264,6 @@ const { type } = Astro.props;
                     </dd>
                   </div>
                 )}
-                <div>
-                  <dt class="text-muted text-xs uppercase tracking-widest">Date</dt>
-                  <dd class="text-text mt-1">{date}</dd>
-                </div>
               </dl>
               {contentLink && (
                 <a
