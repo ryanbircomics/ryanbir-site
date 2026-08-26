@@ -101,7 +101,7 @@ const { type } = Astro.props;
                     </div>
                     <p class="text-muted text-sm mb-1">{role}{coCredit && (
                       <span> · with {coCreditLink ? (
-                        <a href={coCreditLink} class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                        <a href={coCreditLink} class="underline hover:opacity-80 transition-opacity" target="_blank" rel="noopener noreferrer">
                           {coCredit}
                         </a>
                       ) : coCredit}</span>
@@ -257,7 +257,7 @@ const { type } = Astro.props;
                     <dt class="text-muted text-xs uppercase tracking-widest">With</dt>
                     <dd class="text-text mt-1">
                       {coCreditLink ? (
-                        <a href={coCreditLink} class="text-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                        <a href={coCreditLink} class="underline hover:opacity-80 transition-opacity" target="_blank" rel="noopener noreferrer">
                           {coCredit}
                         </a>
                       ) : coCredit}
