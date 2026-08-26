@@ -79,7 +79,7 @@ const { type } = Astro.props;
             <div class="space-y-24">
               {projects.map((project) => {
                 const { title, issueNumber, role, coCredit, coCreditLink, contentLink, imageFolderLocation } = project.data;
-                const displayTitle = issueNumber ? `${title} Issue #${issueNumber}` : title;
+                const displayTitle = issueNumber ? `${title} · Issue #${issueNumber}` : title;
                 const images = getProjectImages(imageFolderLocation);
                 return (
                   <section>
@@ -110,8 +110,8 @@ const { type } = Astro.props;
                     <!-- Image grid -->
                     {images.length > 0 ? (
                       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3" data-lightbox-group={project.id}>
-                        {images.map((filename) => (
-                          <div class="overflow-hidden bg-surface">
+                        {images.map((filename, i) => (
+                          <div class="overflow-hidden bg-surface animate-fade-in-up" style={`animation-delay: ${i * 60}ms`}>
                             <img
                               src={`/${imageFolderLocation}/${filename}`}
                               alt={`${displayTitle} — ${filename}`}
@@ -222,7 +222,7 @@ const { type } = Astro.props;
     const { project } = Astro.props;
     const { title, issueNumber, role, coCredit, coCreditLink, contentLink, imageFolderLocation, category } =
       project.data;
-    const displayTitle = issueNumber ? `${title} Issue #${issueNumber}` : title;
+    const displayTitle = issueNumber ? `${title} · Issue #${issueNumber}` : title;
     const coverImage = `/${imageFolderLocation}/cover.jpg`;
     const catLabel = CATEGORIES.find((c) => c.slug === category)?.label ?? category;
     return (
@@ -236,7 +236,7 @@ const { type } = Astro.props;
             ← {catLabel}
           </a>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-6">
-            <div class="aspect-[3/4] bg-surface rounded-lg overflow-hidden">
+            <div class="aspect-[3/4] bg-surface rounded-lg overflow-hidden animate-fade-in-up">
               <img
                 src={coverImage}
                 alt={displayTitle}
