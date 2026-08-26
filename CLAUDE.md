@@ -4,7 +4,7 @@
 - **Framework**: Astro v5 + Tailwind CSS v3
 - **Hosting**: Vercel (auto-deploy from GitHub `main` branch)
 - **Domain**: www.ryanbir.com
-- **GitHub**: github.com/ryanbircomics
+- **GitHub**: github.com/ryanbircomics/ryanbir-site
 
 ## Project Structure
 
@@ -22,7 +22,9 @@ src/
       index.astro       ← Portfolio grid
       [slug].astro      ← Individual project page
     about.astro
-    contact.astro
+    contact.astro       ← Formspark contact form
+    contact/
+      thanks.astro     ← Post-submit redirect target
   layouts/
     Layout.astro        ← Base HTML wrapper (fonts, meta tags)
   components/
@@ -34,7 +36,7 @@ public/
   images/
     portfolio/
       [project-folder]/ ← One folder per project, named to match imageFolderLocation
-        cover.jpg       ← Required — shown in grid and detail page
+        cover.jpg       ← One image must have "cover" in its filename (shown in grid and detail page)
         01.jpg          ← Optional additional images
         02.jpg
 ```
@@ -55,10 +57,16 @@ collection (`src/content/config.ts`) and the script — update it there, not
 in both places.
 
 Manually, a project is: a folder in `public/images/portfolio/<slug>/`
-containing `cover.jpg` (+ optional `01.jpg`, `02.jpg`, ...), and a matching
+containing one image with "cover" somewhere in its filename (case-insensitive
+substring match, e.g. `cover.jpg` or `dark souls 01 cover.jpg` — exactly one
+match required) plus optional others, and a matching
 `src/content/portfolio/<slug>.json` (copy `ProjectTemplate.json` from the
 repo root — placeholder text in each field explains what goes there).
-`ranking` (lower = shown first) and `imageFolderLocation` are normally auto-filled by
+
+`ranking` (lower = shown first) is filled in by hand in the template — its
+placeholder text is deliberately not a valid number, so the script's own
+validation catches it if left unedited (same trick as `category`'s
+placeholder). `imageFolderLocation` is the one field still auto-filled by
 the script, not written by hand.
 
 ## Colors
@@ -70,12 +78,57 @@ Defined in `tailwind.config.js`:
 - `text` #F5F5F5 — main text
 - `muted` #9CA3AF — secondary text, labels
 
-## Contact Form (TODO)
+## UI Conventions
+
+- **Load animation**: `animate-fade-in-up` (defined in `tailwind.config.js`)
+  runs two independent keyframe animations together — `fadeIn` (2.2s) and
+  `slideUp` (1.2s) — so the fade can be tuned separately from the upward
+  motion. Applied to the home/portfolio category cards, every portfolio
+  image, the project cover image, and the About page's photo placeholder
+  (so the real portrait picks it up automatically once added). No stagger —
+  everything on a page animates in together on purpose.
+- **Lightbox**: clicking an image in a project's grid (on a category page,
+  `src/pages/portfolio/[slug].astro`) opens a fullscreen lightbox with
+  prev/next arrows, an X to close, click-outside-to-close, and arrow-key/
+  Escape support. Plain vanilla JS in a `<script>` tag, scoped per-project
+  via `data-lightbox-group`/`data-lightbox-img` attributes — no library.
+- **Title formatting**: when a project has an `issueNumber`, the displayed
+  title is `"{title} · Issue #{issueNumber}"` (dot separator, "Issue #" not
+  just "#"). See `displayTitle` in `[slug].astro` (defined twice — once per
+  branch of the category/project conditional).
+- **Date is hidden**: `date` stays in the schema/JSON (client wants it kept
+  for future use) but isn't rendered anywhere currently — removed from both
+  the category and individual project pages per client request.
+- **Co-credit links**: styled to inherit the surrounding text color and use
+  an underline, not `text-accent` — an accent-blue link there pulled focus
+  away from Ryan's own credit.
+
+## Contact Form
 
 Formspark is wired up (form ID in `src/pages/contact.astro`, submits to
 `https://submit-form.com/<id>`, redirects to `/contact/thanks` on success via
-a hidden `_redirect` field). Still outstanding: add the Cloudflare Turnstile
-script and widget to the form once Ryan sets that up.
+a hidden `_redirect` field). Fields: Name, Email, Phone, Subject, Message —
+all required except Phone.
+
+## Outstanding Technical Work
+
+- **Cloudflare Turnstile (spam protection for the contact form)** — waiting
+  on Ryan to create his own free Cloudflare account (Turnstile doesn't need
+  the domain's DNS/nameservers to move to Cloudflare, so this is just a
+  signup). Once he has a sitekey + secret key, add the Turnstile script and
+  widget to `src/pages/contact.astro` and configure the secret in Formspark.
+- **Branded email (`ryan@ryanbir.com` via iCloud Mail)** — needs an
+  Apple ID with iCloud+ (for iCloud's custom domain feature) and a few DNS
+  records added at wherever `ryanbir.com`'s DNS is managed, per Apple's
+  custom domain setup flow.
+- **SEO optimization** — already in place: sitemap (`@astrojs/sitemap`,
+  `site` set in `astro.config.mjs`), per-page `<title>`/meta description,
+  canonical URL, and basic Open Graph tags (all via `Layout.astro`). Still
+  to do: `robots.txt`, structured data (e.g. Person/CreativeWork schema),
+  and an alt-text pass on portfolio images (currently auto-generated as
+  `"{title} — {filename}"`, not hand-written).
+- **Google Analytics (GA4)** — not yet added; needs a GA4 property/measurement
+  ID from Ryan, then the tracking snippet added to `Layout.astro`.
 
 ## Local Development
 
