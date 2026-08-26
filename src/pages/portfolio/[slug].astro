@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Nav from "../../components/Nav.astro";
 import Footer from "../../components/Footer.astro";
+import Chevron from "../../components/Chevron.astro";
 import { getCollection } from "astro:content";
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
@@ -66,8 +67,12 @@ const { type } = Astro.props;
       >
         <Nav />
         <main class="max-w-6xl mx-auto px-6 py-8">
-          <a href="/portfolio" class="text-muted text-sm hover:text-accent transition-colors mb-6 inline-block">
-            ← Portfolio
+          <a
+            href="/portfolio"
+            aria-label="Back to portfolio"
+            class="group text-muted hover:text-accent transition-colors mb-6 inline-flex items-center justify-center w-8 h-8 -ml-1.5"
+          >
+            <Chevron direction="left" class="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
           </a>
           <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-8">
             {category.label.toUpperCase()}
@@ -93,9 +98,10 @@ const { type } = Astro.props;
                           href={contentLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          class="text-accent text-sm font-medium hover:underline"
+                          class="group text-accent text-sm font-medium hover:underline inline-flex items-center gap-1"
                         >
-                          Read / Buy →
+                          Read / Buy
+                          <Chevron direction="right" class="transition-transform duration-200 group-hover:translate-x-0.5" />
                         </a>
                       )}
                     </div>
@@ -232,8 +238,12 @@ const { type } = Astro.props;
       >
         <Nav />
         <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
-          <a href={`/portfolio/${category}`} class="text-muted text-sm hover:text-accent transition-colors mb-6 inline-block">
-            ← {catLabel}
+          <a
+            href={`/portfolio/${category}`}
+            aria-label={`Back to ${catLabel}`}
+            class="group text-muted hover:text-accent transition-colors mb-6 inline-flex items-center justify-center w-8 h-8 -ml-1.5"
+          >
+            <Chevron direction="left" class="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
           </a>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-6">
             <div class="aspect-[3/4] bg-surface rounded-lg overflow-hidden animate-fade-in-up">
@@ -270,9 +280,10 @@ const { type } = Astro.props;
                   href={contentLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="mt-10 inline-block bg-accent text-white px-6 py-3 text-sm font-medium tracking-wide hover:bg-accent/80 transition-colors self-start"
+                  class="group mt-10 inline-flex items-center gap-1.5 bg-accent text-white px-6 py-3 text-sm font-medium tracking-wide hover:bg-accent/80 transition-colors self-start"
                 >
-                  Read / Buy →
+                  Read / Buy
+                  <Chevron direction="right" class="transition-transform duration-200 group-hover:translate-x-0.5" />
                 </a>
               )}
             </div>

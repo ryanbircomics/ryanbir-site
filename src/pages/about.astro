@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
+import Chevron from "../components/Chevron.astro";
 ---
 
 <Layout
@@ -34,9 +35,10 @@ import Footer from "../components/Footer.astro";
         <div class="pt-4">
           <a
             href="/contact"
-            class="text-accent font-medium hover:underline"
+            class="group text-accent font-medium hover:underline inline-flex items-center gap-1"
           >
-            Available for commissions and collaboration →
+            Available for commissions and collaboration
+            <Chevron direction="right" class="transition-transform duration-200 group-hover:translate-x-0.5" />
           </a>
         </div>
       </div>
