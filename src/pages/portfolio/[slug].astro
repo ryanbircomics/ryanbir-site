@@ -65,11 +65,11 @@ const { type } = Astro.props;
         description={`${category.label} work by comic book illustrator Ryan Bir.`}
       >
         <Nav />
-        <main class="max-w-6xl mx-auto px-6 py-12">
-          <a href="/portfolio" class="text-muted text-sm hover:text-accent transition-colors mb-8 inline-block">
+        <main class="max-w-6xl mx-auto px-6 py-8">
+          <a href="/portfolio" class="text-muted text-sm hover:text-accent transition-colors mb-6 inline-block">
             ← Portfolio
           </a>
-          <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mt-4 mb-16">
+          <h1 class="font-display text-5xl md:text-7xl tracking-widest text-text mb-8">
             {category.label.toUpperCase()}
           </h1>
 
@@ -232,7 +232,7 @@ const { type } = Astro.props;
       >
         <Nav />
         <main class="flex-1 max-w-6xl mx-auto px-6 py-16">
-          <a href={`/portfolio/${category}`} class="text-muted text-sm hover:text-accent transition-colors mb-8 inline-block">
+          <a href={`/portfolio/${category}`} class="text-muted text-sm hover:text-accent transition-colors mb-6 inline-block">
             ← {catLabel}
           </a>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-6">

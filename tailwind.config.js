@@ -24,7 +24,7 @@ module.exports = {
         },
       },
       animation: {
-        "fade-in-up": "fadeIn 2.6s ease-out both, slideUp 1.4s ease-out both",
+        "fade-in-up": "fadeIn 2.2s ease-out both, slideUp 1.2s ease-out both",
       },
     },
   },
