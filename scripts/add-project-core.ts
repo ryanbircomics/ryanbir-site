@@ -2,9 +2,15 @@
 // once it's confirmed dependencies are installed. Not meant to be run directly.
 // Invoked as three phases so a GUI wrapper can pause for confirmation between
 // processing and publishing:
-//   prepare <sourceFolder>  — pull, validate, process images, write + stage files
-//   commit  <slug>          — git commit + push
-//   abort   <slug>          — undo prepare, leaving the repo clean
+//   prepare <sourceFolder|jsonFile>  — pull, validate, process images, write + stage files
+//   commit  <slug>                   — git commit + push
+//   abort   <slug>                   — undo prepare, leaving the repo clean
+//
+// `prepare` also accepts a lone .json file (no folder, no images) instead of
+// a folder — that's a metadata-only update: it must match an existing
+// project's title/issueNumber/category exactly, and updates that project's
+// info while leaving its images untouched. That's also how "hidden" gets
+// toggled — see the `hidden` field in portfolio-schema.ts.
 //
 // See scripts/SETUP.md for how this is wired up to a double-clickable app.
 
@@ -146,13 +152,15 @@ function readSourceFolder(sourceDir: string) {
   if (jsonFiles.length > 1) {
     fail(`Found more than one JSON file (${jsonFiles.join(", ")}) — there should be exactly one.`);
   }
-  if (imageFiles.length === 0) fail("No image files found in this folder.");
+  // No image files is allowed here — a folder with just a JSON (like a lone
+  // dropped JSON file) is a metadata-only update, handled by the caller.
 
   return { jsonFile: jsonFiles[0], imageFiles };
 }
 
-function readProjectJson(sourceDir: string, jsonFile: string) {
-  const raw = fs.readFileSync(path.join(sourceDir, jsonFile), "utf-8");
+function readProjectJson(jsonPath: string) {
+  const jsonFile = path.basename(jsonPath);
+  const raw = fs.readFileSync(jsonPath, "utf-8");
   let data: any;
   try {
     data = JSON.parse(raw);
@@ -379,22 +387,51 @@ async function prepare(sourceDir: string) {
   // since commit()/abort() are separate later invocations that release it.
   acquireLock();
   try {
-    if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
-      fail(`"${sourceDir}" isn't a folder.`);
+    if (!fs.existsSync(sourceDir)) {
+      fail(`"${sourceDir}" doesn't exist.`);
     }
 
     ensureCleanRepo();
     pullLatest();
 
-    const { jsonFile, imageFiles } = readSourceFolder(sourceDir);
-    const projectData = readProjectJson(sourceDir, jsonFile);
-    const { coverFile, rest } = organizeImages(imageFiles);
+    // A lone dropped .json file (no folder, no images) means "update this
+    // existing project's info only" — resolved below once we know whether
+    // it actually matches an existing project.
+    const droppedIsFile = fs.statSync(sourceDir).isFile();
+
+    let jsonPath: string;
+    let imageDir: string | null;
+    let imageFiles: string[];
+
+    if (droppedIsFile) {
+      if (path.extname(sourceDir).toLowerCase() !== ".json") {
+        fail(`"${path.basename(sourceDir)}" isn't a folder or a JSON file.`);
+      }
+      jsonPath = sourceDir;
+      imageDir = null;
+      imageFiles = [];
+    } else {
+      const { jsonFile, imageFiles: foundImages } = readSourceFolder(sourceDir);
+      jsonPath = path.join(sourceDir, jsonFile);
+      imageDir = sourceDir;
+      imageFiles = foundImages;
+    }
+
+    const projectData = readProjectJson(jsonPath);
 
     const { jsonSlug, imageFolderLocation, isReplace, existingRanking } = resolveTarget(
       projectData.title,
       projectData.issueNumber,
       projectData.category
     );
+
+    const metadataOnly = imageFiles.length === 0;
+    if (metadataOnly && !isReplace) {
+      fail(
+        "No images were included, and no existing project matches this title/issue number/category to update. Include images to publish a new project, or make sure title/issue number/category exactly match an existing one to update its info only."
+      );
+    }
+
     const ranking = projectData.ranking ?? existingRanking ?? nextRanking(projectData.category);
 
     const finalData = portfolioSchema.parse({
@@ -406,27 +443,39 @@ async function prepare(sourceDir: string) {
     const destImagesDir = path.join(REPO_ROOT, "public", imageFolderLocation);
     const destJsonPath = path.join(PORTFOLIO_CONTENT_DIR, `${jsonSlug}.json`);
 
+    let extraImageCount = 0;
+
     try {
-      // Clear first (harmless no-op for a new project) so a replace with
-      // fewer images than before doesn't leave old ones stranded.
-      fs.rmSync(destImagesDir, { recursive: true, force: true });
-      fs.mkdirSync(destImagesDir, { recursive: true });
-      await processImage(path.join(sourceDir, coverFile), path.join(destImagesDir, "cover.jpg"));
-      for (let i = 0; i < rest.length; i++) {
-        const num = String(i + 1).padStart(2, "0");
-        await processImage(path.join(sourceDir, rest[i]), path.join(destImagesDir, `${num}.jpg`));
+      if (metadataOnly) {
+        // Images are left exactly as they are — only the JSON changes.
+        fs.writeFileSync(destJsonPath, JSON.stringify(finalData, null, 2) + "\n");
+        runBuildCheck();
+        run("git", ["add", "--", relFromRoot(destJsonPath)]);
+      } else {
+        const { coverFile, rest } = organizeImages(imageFiles);
+        extraImageCount = rest.length;
+
+        // Clear first (harmless no-op for a new project) so a replace with
+        // fewer images than before doesn't leave old ones stranded.
+        fs.rmSync(destImagesDir, { recursive: true, force: true });
+        fs.mkdirSync(destImagesDir, { recursive: true });
+        await processImage(path.join(imageDir!, coverFile), path.join(destImagesDir, "cover.jpg"));
+        for (let i = 0; i < rest.length; i++) {
+          const num = String(i + 1).padStart(2, "0");
+          await processImage(path.join(imageDir!, rest[i]), path.join(destImagesDir, `${num}.jpg`));
+        }
+        fs.writeFileSync(destJsonPath, JSON.stringify(finalData, null, 2) + "\n");
+
+        runBuildCheck();
+
+        run("git", ["add", "--", relFromRoot(destImagesDir), relFromRoot(destJsonPath)]);
       }
-      fs.writeFileSync(destJsonPath, JSON.stringify(finalData, null, 2) + "\n");
-
-      runBuildCheck();
-
-      run("git", ["add", "--", relFromRoot(destImagesDir), relFromRoot(destJsonPath)]);
     } catch (err) {
       cleanupSlug(jsonSlug, imageFolderLocation);
       throw err;
     }
 
-    printSummary(finalData, jsonSlug, rest.length, isReplace);
+    printSummary(finalData, jsonSlug, extraImageCount, isReplace, metadataOnly);
   } catch (err) {
     releaseLock();
     throw err;
@@ -437,25 +486,28 @@ function printSummary(
   finalData: ReturnType<typeof portfolioSchema.parse>,
   slug: string,
   extraImageCount: number,
-  isReplace: boolean
+  isReplace: boolean,
+  metadataOnly: boolean
 ) {
   const catLabel = CATEGORIES.find((c) => c.slug === finalData.category)?.label ?? finalData.category;
   const displayTitle = finalData.issueNumber ? `${finalData.title} #${finalData.issueNumber}` : finalData.title;
 
   const lines: string[] = [];
-  if (isReplace) {
+  if (metadataOnly) {
+    lines.push(`This will update "${displayTitle}"'s info only — its existing images are left as they are.`, "");
+  } else if (isReplace) {
     lines.push(
       `This will REPLACE the existing project "${displayTitle}" — all of its current images will be replaced by the ${extraImageCount + 1} you're submitting now.`,
       ""
     );
   }
+  lines.push(`Title: ${displayTitle}`, `Category: ${catLabel}`, `Role: ${finalData.role}`, `Date: ${finalData.date}`);
+  if (!metadataOnly) {
+    lines.push(`Images: ${extraImageCount + 1} (including cover)`);
+  }
   lines.push(
-    `Title: ${displayTitle}`,
-    `Category: ${catLabel}`,
-    `Role: ${finalData.role}`,
-    `Date: ${finalData.date}`,
-    `Images: ${extraImageCount + 1} (including cover)`,
     `Ranking: ${finalData.ranking}`,
+    `Hidden: ${finalData.hidden ? "YES — this project will NOT appear anywhere on the site" : "No"}`,
     "",
     isReplace ? "Publish this update?" : "Publish this to the live site?"
   );
@@ -524,7 +576,7 @@ async function main() {
 
   switch (cmd) {
     case "prepare":
-      if (!arg) fail("Usage: prepare <sourceFolder>");
+      if (!arg) fail("Usage: prepare <sourceFolder|jsonFile>");
       await prepare(arg);
       break;
     case "commit":

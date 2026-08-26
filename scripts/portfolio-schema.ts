@@ -19,6 +19,7 @@ export const portfolioSchema = z.object({
   contentLink: z.string().url().optional(),
   imageFolderLocation: z.string(),
   ranking: z.coerce.number().int().min(1),
+  hidden: z.boolean().default(false),
 });
 
 // What a project owner provides by hand — imageFolderLocation and ranking are

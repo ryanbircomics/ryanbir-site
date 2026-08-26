@@ -44,20 +44,44 @@ just redo this step.
 
 ## How Ryan uses it day to day
 
+**Adding a new project or replacing one's images:**
+
 1. Put his images + one JSON file (copied from `ProjectTemplate.json` in
    the repo root, with placeholder text in each field showing what goes
-   there) into a single folder. One image must be
-   named `cover` (e.g. `cover.jpg`).
+   there) into a single folder. One image must have "cover" somewhere in
+   its filename (e.g. `cover.jpg`, or `dark souls 01 cover.jpg`).
 2. Drag that folder onto the `AddProject` icon on his Desktop (or
-   double-click it and pick the folder from the dialog that appears).
+   double-click it and choose "Project folder" from the dialog that
+   appears).
 3. A dialog shows what's about to be published — click **Publish** to go
    live, or **Cancel** to back out (nothing is changed if he cancels).
 4. A final dialog confirms it went out. The live site updates within a
    couple of minutes via Vercel.
 
+If the title, issue number, and category all exactly match an existing
+project, this **replaces** it (images included) instead of creating a
+duplicate.
+
+**Updating an existing project's info without touching its images:**
+
+Drag just a JSON file (no folder, no images) onto the icon instead — or
+double-click and choose "JSON file (update info only)". It must match an
+existing project's title/issue number/category exactly; the dialog then
+updates that project's info (role, date, links, etc.) and leaves its
+images exactly as they are.
+
+**"Deleting" a project:**
+
+There's no real delete — instead, take that project's JSON (drag just the
+JSON file in, as above), set `"hidden": true`, and submit it the same way.
+The project stops appearing anywhere on the site, but nothing is actually
+removed — set `"hidden": false` (or drop the field entirely) the same way
+to bring it back.
+
 If anything goes wrong, the dialog explains what — usually a fixable
-mistake in the JSON (bad category name, missing cover image, etc.) — and
-nothing is left half-done in the repo either way.
+mistake in the JSON (bad category name, missing cover image, no matching
+existing project for a JSON-only update, etc.) — and nothing is left
+half-done in the repo either way.
 
 ## If you update the tool itself later
 

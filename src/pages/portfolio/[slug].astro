@@ -13,7 +13,7 @@ const CATEGORIES = [
 ];
 
 export async function getStaticPaths() {
-  const projects = await getCollection("portfolio");
+  const projects = await getCollection("portfolio", ({ data }) => !data.hidden);
 
   const CATEGORIES = [
     { slug: "pencils-inks", label: "Pencils & Inks" },

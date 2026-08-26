@@ -3,7 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import Nav from "../components/Nav.astro";
 import { getCollection } from "astro:content";
 
-const allProjects = await getCollection("portfolio");
+const allProjects = await getCollection("portfolio", ({ data }) => !data.hidden);
 ---
 
 <Layout title="Ryan Bir — Comic Book Illustrator">

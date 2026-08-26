@@ -7,5 +7,6 @@
   "ranking": "REPLACE WITH A NUMBER — lower number = shown first within this category, e.g. 1",
   "coCredit": "",
   "coCreditLink": "",
-  "contentLink": ""
+  "contentLink": "",
+  "hidden": false
 }

@@ -49,12 +49,14 @@ the logic. It drags-and-drops a folder of images + a JSON file straight
 into the right place, processes the images, and publishes via a GUI
 confirmation dialog (no terminal, no git).
 
-For manual/technical edits, the same thing can be done by hand or via
-`npm run add-project -- prepare <folder>` (see that script's `--dry-run`
-flag for safe testing). The content schema lives in
-`scripts/portfolio-schema.ts` and is shared between the Astro content
-collection (`src/content/config.ts`) and the script — update it there, not
-in both places.
+For manual/technical edits, the same thing can be done by hand via
+`npm run add-project -- prepare <folder|jsonFile>` (stages locally, doesn't
+commit or push), then either `npm run add-project -- commit <slug>` (add
+`--dry-run` to commit locally without pushing, for safe testing) or
+`npm run add-project -- abort <slug>` to cancel and restore the previous
+state. The content schema lives in `scripts/portfolio-schema.ts` and is
+shared between the Astro content collection (`src/content/config.ts`) and
+the script — update it there, not in both places.
 
 Manually, a project is: a folder in `public/images/portfolio/<slug>/`
 containing one image with "cover" somewhere in its filename (case-insensitive
@@ -68,6 +70,20 @@ placeholder text is deliberately not a valid number, so the script's own
 validation catches it if left unedited (same trick as `category`'s
 placeholder). `imageFolderLocation` is the one field still auto-filled by
 the script, not written by hand.
+
+**Updating an existing project without touching its images**: drop just a
+JSON file (no folder, no images) — it must match an existing project's
+title/issueNumber/category exactly, and updates that project's other
+fields while leaving its images and `imageFolderLocation` untouched. A
+JSON-only drop that doesn't match anything existing fails (there's no way
+to create a new project without images).
+
+**Hiding a project ("soft delete")**: set `"hidden": true` in a project's
+JSON and resubmit it (a JSON-only drop works fine for this — no need to
+touch images). A hidden project is filtered out of every `getCollection`
+call across the site (home/category cards, category listings, and its own
+detail page's `getStaticPaths`), so its page isn't even generated — nothing
+is deleted, it's just unreachable until `hidden` is set back to `false`.
 
 ## Colors
 

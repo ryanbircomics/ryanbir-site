@@ -2,7 +2,10 @@
 --
 -- Double-clickable macOS app for adding a new portfolio project without
 -- touching git or a terminal. Drag a folder (images + one JSON file) onto
--- the compiled app, or double-click it to pick a folder from a dialog.
+-- the compiled app, or double-click it to pick a folder or file from a
+-- dialog. Dropping just a JSON file (no folder, no images) instead updates
+-- an existing project's info without touching its images — also how the
+-- "hidden" field gets toggled to hide a project without deleting it.
 --
 -- Finds its own repo location and node's location at runtime, so no
 -- properties need editing. See scripts/SETUP.md for the one-time setup:
@@ -17,8 +20,16 @@ on open droppedItems
 end open
 
 on run
-	set chosenFolder to choose folder with prompt "Select the folder with your images and JSON file"
-	handleProject(POSIX path of chosenFolder)
+	-- "choose file or folder" doesn't reliably accept a custom prompt across
+	-- macOS versions, so ask which kind first, then use the single-purpose
+	-- chooser for it.
+	set pickKind to button returned of (display dialog "What are you adding?" with title "Add Project" buttons {"JSON file (update info only)", "Project folder"} default button "Project folder")
+	if pickKind is "Project folder" then
+		set chosenItem to choose folder with prompt "Select the folder with your images and JSON file"
+	else
+		set chosenItem to choose file with prompt "Select the JSON file for the project you're updating" of type {"public.json"}
+	end if
+	handleProject(POSIX path of chosenItem)
 end run
 
 on resolvedRepoPath()
@@ -50,7 +61,7 @@ on handleProject(folderPath)
 	-- can take a while with no other feedback, which invites an impatient
 	-- second drag-and-drop. This auto-dismisses on its own, so it doesn't
 	-- actually block — it's just here to set expectations up front.
-	display dialog "Working on it — this can take up to a minute. Please don't drop another folder in the meantime." with title "Add Project" buttons {"OK"} default button "OK" giving up after 3
+	display dialog "Working on it — this can take up to a minute. Please don't drop anything else in the meantime." with title "Add Project" buttons {"OK"} default button "OK" giving up after 3
 
 	try
 		set prepareOutput to do shell script shellPrefix & "./node_modules/.bin/tsx scripts/add-project.ts prepare " & quoted form of folderPath
