@@ -28,7 +28,7 @@ const allProjects = await getCollection("portfolio");
           { slug: "pencils-inks", label: "Pencils & Inks" },
           { slug: "colors", label: "Colors" },
           { slug: "illustrations", label: "Illustrations" },
-        ].map((cat, i) => {
+        ].map((cat) => {
           const featured = allProjects
             .filter((p) => p.data.category === cat.slug)
             .sort((a, b) => a.data.ranking - b.data.ranking)[0];
@@ -39,7 +39,6 @@ const allProjects = await getCollection("portfolio");
             <a
               href={`/portfolio/${cat.slug}`}
               class="group relative overflow-hidden bg-surface border border-white/5 hover:border-accent/40 transition-all duration-300 flex items-end min-h-48 animate-fade-in-up"
-              style={`animation-delay: ${i * 100}ms`}
             >
               {coverImage && (
                 <img

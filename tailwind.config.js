@@ -20,7 +20,7 @@ module.exports = {
         },
       },
       animation: {
-        "fade-in-up": "fadeInUp 0.7s ease-out both",
+        "fade-in-up": "fadeInUp 1.4s ease-out both",
       },
     },
   },
