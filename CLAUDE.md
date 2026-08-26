@@ -72,9 +72,10 @@ Defined in `tailwind.config.js`:
 
 ## Contact Form (TODO)
 
-When Ryan sets up Formspark + Cloudflare Turnstile:
-1. Replace `YOUR_FORM_ID_HERE` in `src/pages/contact.astro`
-2. Add the Turnstile script and widget to the form
+Formspark is wired up (form ID in `src/pages/contact.astro`, submits to
+`https://submit-form.com/<id>`, redirects to `/contact/thanks` on success via
+a hidden `_redirect` field). Still outstanding: add the Cloudflare Turnstile
+script and widget to the form once Ryan sets that up.
 
 ## Local Development
 

@@ -3,9 +3,8 @@ import Layout from "../layouts/Layout.astro";
 import Nav from "../components/Nav.astro";
 import Footer from "../components/Footer.astro";
 
-// TODO: Add Formspark form ID when Ryan sets up his account
-// https://formspark.io
-const FORMSPARK_FORM_ID = "YOUR_FORM_ID_HERE";
+const FORMSPARK_FORM_ID = "KSFvRZux8";
+const redirectUrl = new URL("/contact/thanks", Astro.url).toString();
 ---
 
 <Layout
@@ -23,12 +22,14 @@ const FORMSPARK_FORM_ID = "YOUR_FORM_ID_HERE";
       form below and I'll get back to you.
     </p>
 
-    <!-- TODO: Replace action URL with real Formspark endpoint and add Cloudflare Turnstile captcha -->
+    <!-- TODO: Add Cloudflare Turnstile captcha once Ryan sets it up -->
     <form
       action={`https://submit-form.com/${FORMSPARK_FORM_ID}`}
       method="POST"
       class="space-y-6"
     >
+      <input type="hidden" name="_redirect" value={redirectUrl} />
+
       <div>
         <label for="name" class="block text-sm text-muted mb-2">Name</label>
         <input
@@ -52,17 +53,24 @@ const FORMSPARK_FORM_ID = "YOUR_FORM_ID_HERE";
       </div>
 
       <div>
+        <label for="phone" class="block text-sm text-muted mb-2">Phone</label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          class="w-full bg-surface border border-white/10 text-text px-4 py-3 rounded focus:outline-none focus:border-accent transition-colors"
+        />
+      </div>
+
+      <div>
         <label for="subject" class="block text-sm text-muted mb-2">Subject</label>
-        <select
+        <input
           id="subject"
           name="subject"
+          type="text"
+          required
           class="w-full bg-surface border border-white/10 text-text px-4 py-3 rounded focus:outline-none focus:border-accent transition-colors"
-        >
-          <option value="commission">Commission</option>
-          <option value="cover">Cover Work</option>
-          <option value="collaboration">Collaboration</option>
-          <option value="other">Other</option>
-        </select>
+        />
       </div>
 
       <div>
